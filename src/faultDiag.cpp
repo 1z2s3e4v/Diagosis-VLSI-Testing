@@ -13,7 +13,7 @@
  * (that is wire_value_g != wire_value_f) 
  * Note that the wire themselves are not necessarily a fault site.
  * The list is linked by the pnext pointers */
-string failLog_str[2] = {"expect L observe H", "expect H observe L"};
+string failLog_str[2] = {"expect L, observe H", "expect H, observe L"};
 
 #include <bitset>
 #include <string>
@@ -264,15 +264,15 @@ void ATPG::fd_fault_sim_a_vector(const string &vec, int &num_of_current_detect, 
   for(wptr failed_w : failed_ws){
     // printf("vector[%d] %s %s  # T'%s'\n", vec_index, failed_w->name.c_str(), failLog_str[failed_w->wire_value_g].c_str(), vec.c_str());
     if(failed_w->wire_value_g == 1){
-      printf("vector[%d] %s %s  # T'%s'\n", vec_index, failed_w->name.c_str(), failLog_str[1].c_str(), vec.c_str());
+      printf("vector[%d] %s %s  # T'%s' \n", vec_index, failed_w->name.c_str(), failLog_str[1].c_str(), vec.c_str());
     } else if (failed_w->wire_value_g == 0){
-      printf("vector[%d] %s %s  # T'%s'\n", vec_index, failed_w->name.c_str(), failLog_str[0].c_str(), vec.c_str());
+      printf("vector[%d] %s %s  # T'%s' \n", vec_index, failed_w->name.c_str(), failLog_str[0].c_str(), vec.c_str());
     }
   }
 }/* end of fault_sim_a_vector */
 
 void ATPG::set_examined_faults(const string &wire, const string &gate, const string &io, const string &fault_type) {
-  cout << wire << " " << gate << " " << io << " " <<fault_type << endl;
+//   cout << wire << " " << gate << " " << io << " " <<fault_type << endl;
   int fault_num;
   wptr w;
   nptr n;
