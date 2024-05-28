@@ -49,7 +49,6 @@ ATPG::nptr ATPG::nfind(const string &name) {
 /* get wire obj and return the wire pointer */
 ATPG::wptr ATPG::getwire(const string &wirename) {
   wptr w = wfind(wirename);
-  
   if (w != nullptr) { return (w); }
 
   /* allocate new wire from free storage */
@@ -112,7 +111,6 @@ void ATPG::set_output() {
 
   for (i = 1; i < targc; i++) {
     w = getwire(targv[i]);
-    w->name = targv[i];
     for (auto pos : cktout) {
       if (w == pos) {
         fprintf(stderr, "net %s is declared again as output around line %d\n", w->name.c_str(), lineno);
@@ -120,7 +118,6 @@ void ATPG::set_output() {
       }
     }
     w->set_output();
-    
     cktout.push_back(w);
   }
 }/* end of set_output */
@@ -133,7 +130,6 @@ void ATPG::set_input(const bool &pori) {
 
   for (i = 1; i < targc; i++) {
     w = getwire(targv[i]);
-    w->name = targv[i];
     for (auto pos : cktin) {
       if (w == pos) {
         fprintf(stderr, "net %s is declared again as input around line %d\n", w->name.c_str(), lineno);
@@ -141,7 +137,6 @@ void ATPG::set_input(const bool &pori) {
       }
     }
     w->set_input();
-    
     cktin.push_back(w);
   }
 }/* end of set_input */
@@ -232,13 +227,13 @@ void ATPG::input(const string &infile) {
 
   file.close();
   create_structure();
-  //fprintf(stdout, "\n");
-  //fprintf(stdout, "#Circuit Summary:\n");
-  //fprintf(stdout, "#---------------\n");
-  //fprintf(stdout, "#number of inputs = %d\n", int(cktin.size()));
-  //fprintf(stdout, "#number of outputs = %d\n", int(cktout.size()));
-  //fprintf(stdout, "#number of gates = %d\n", ncktnode);
-  //fprintf(stdout, "#number of wires = %d\n", ncktwire);
+  // fprintf(stdout, "\n");
+  // fprintf(stdout, "#Circuit Summary:\n");
+  // fprintf(stdout, "#---------------\n");
+  // fprintf(stdout, "#number of inputs = %d\n", int(cktin.size()));
+  // fprintf(stdout, "#number of outputs = %d\n", int(cktout.size()));
+  // fprintf(stdout, "#number of gates = %d\n", ncktnode);
+  // fprintf(stdout, "#number of wires = %d\n", ncktwire);
   if (debug) display_circuit();
   //display_circuit();
 }/* end of input */
@@ -407,13 +402,10 @@ void ATPG::read_vectors(const string &vetFile) {
         if (c == '\'') continue; // ignore "'"
         if (c == ' ') continue;  // ignore " "
         vec.push_back(c);
-        
       }
       //cout << "Before erase: " << t << endl;
       //cout << "After erase: " << vec << endl;
       vectors.push_back(vec); // append the vectors
-      // DEBUG
-      //cout << vec << endl;
     }
   }
   file.close(); // close the file

@@ -2,7 +2,7 @@
 /*           Constructors of the classes defined in atpg.h            */
 /*           ATPG top-level functions                                 */
 /*           Author: Bing-Chen (Benson) Wu                            */
-/*           last update : 01/21/2018                                 */
+/*           last update : 02/20/2023                                 */
 /**********************************************************************/
 
 #include "atpg.h"
@@ -16,14 +16,7 @@ void ATPG::test() {
     int no_of_aborted_faults = 0;
     int no_of_redundant_faults = 0;
     int no_of_calls = 0;
-    int nckt = sort_wlist.size();
 
-    #ifdef DEBUG
-	for ( int c = 0;  c < nckt; c++)
-	{
-		cout << sort_wlist[c]->name << endl;
-	}
-    #endif
     fptr fault_under_test = flist_undetect.front();
 
     /* stuck-at fault sim mode */
@@ -37,7 +30,7 @@ void ATPG::test() {
 
     /* transition fault sim mode */
     if (tdfsim_only) {
-        transition_delay_fault_simulation(total_detect_num);
+        // transition_delay_fault_simulation(total_detect_num);
         in_vector_no += vectors.size();
         display_undetect();
 
@@ -47,23 +40,16 @@ void ATPG::test() {
         printf("# total detected faults: %d\n", total_detect_num);
         printf("# fault coverage: %lf %\n", (double) total_detect_num / (double) num_of_tdf_fault * 100);
         return;
-    }// if tdfsim only
+    }// if fsim only
 
     /* transition fault sim mode */
+
     if (failLog_only) {
         fd_fault_simulation(total_detect_num);
         in_vector_no += vectors.size();
         //display_fd_undetect();
-        /*
-        printf("\n# Result:\n");
-        printf("-----------------------\n");
-        printf("# total transition delay faults: %d\n", num_of_tdf_fault);
-        printf("# total detected faults: %d\n", total_detect_num);
-        printf("# fault coverage: %lf %\n", (double) total_detect_num / (double) num_of_tdf_fault * 100);
-        */
-        
         return;
-    }// if tdfsim only
+    }// if failLog only
 
 
 
@@ -148,8 +134,8 @@ ATPG::ATPG() {
 ATPG::WIRE::WIRE() {
     this->value = 0;
     this->level = 0;
-    this->wire_value1 = 0;
-    this->wire_value2 = 0;
+    this->wire_value_g = 0;
+    this->wire_value_f = 0;
     this->wlist_index = 0;
 }
 

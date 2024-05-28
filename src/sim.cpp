@@ -2,7 +2,7 @@
 /*           This is the logic simulator for atpg                     */
 /*                                                                    */
 /*           Author: Bing-Chen (Benson) Wu                            */
-/*           last update : 01/21/2018                                 */
+/*           last update : 02/19/2024                                 */
 /**********************************************************************/
 
 #include "atpg.h"
@@ -23,7 +23,7 @@
 */
 
 void ATPG::sim() {
-  int i, j, ncktin, nout, nckt;
+  int ncktin, nckt;
 
   ncktin = cktin.size();
   nckt = sort_wlist.size();
@@ -39,39 +39,63 @@ void ATPG::sim() {
    * So, if a wire value is_changed(), we should clear this flag by remove_changed() and set_schedule() to wait for simulation.
    * We can then start to simulate circuit by sort_wlist, which it is sorted by level.
    * Use evaluate() on connected node and schedule next wire if value changed.
+   * Hint: You might need two foor loops.
    */
-  for (i = 0; i < ncktin; i++) {
-    /* if a input has changed, schedule the gates connected to it */
-    if (sort_wlist[i]->is_changed()) {
-      sort_wlist[i]->remove_changed();
-      for (j = 0, nout = sort_wlist[i]->onode.size(); j < nout; j++) {
-        if (!sort_wlist[i]->onode[j]->owire.empty()) {
-          sort_wlist[i]->onode[j]->owire.front()->set_scheduled();
-        }
-      }
+  
+  // 1. Schedule every gate connected to a changed input.
+  int count_gate = 0;
+  for(int i=0; i<ncktin; ++i){ // for each pi
+    wptr pi = cktin[i];
+    if(pi->is_changed()){
+      pi->remove_changed();
+      pi->set_scheduled();
+      // cout << "pi: " << pi->name << " = " << pi->value << "\n";
     }
-  } // for every input
-
-
-  for (i = ncktin; i < nckt; i++) {
-    if (sort_wlist[i]->is_scheduled()) {
-      sort_wlist[i]->remove_scheduled();
-      evaluate(sort_wlist[i]->inode.front());
-      if (sort_wlist[i]->is_changed()) {
-        sort_wlist[i]->remove_changed();
-        for (j = 0, nout = sort_wlist[i]->onode.size(); j < nout; j++) {
-          if (!sort_wlist[i]->onode[j]->owire.empty()) {
-            sort_wlist[i]->onode[j]->owire.front()->set_scheduled();
-          }
+  }
+  // 2. evaluate() every scheduled gate & propagate any changes
+  for(int w_idx=0; w_idx<nckt; ++w_idx){ // for each wire (in sort_wlist)
+    wptr wire = sort_wlist[w_idx];
+    if(wire->is_changed()){ // changed by faults
+      wire->remove_changed();
+      wire->set_scheduled();
+    }
+    if(wire->is_scheduled()){ // walk through all wires in increasing order
+      wire->remove_scheduled();
+      for(int fo_idx=0; fo_idx<wire->onode.size(); ++fo_idx){ // for each gate connected to the wire
+        nptr gate = wire->onode[fo_idx];
+        if(gate->type != OUTPUT){ // not PO
+          evaluate(gate);
+          // cout << "eval gate(type="<<gate->type<<"): " << gate->name << " = " << gate->owire.front()->value << "\n";
+          // count_gate++;
         }
+        // else{
+        //   cout << "po: " << gate->name << " = " << wire->value << "\n";
+        //   count_gate++;
+        // }
       }
     }
   }
-  /* end TODO */
-
-
+  /*end of TODO*/
 }/* end of sim */
 
+void ATPG::print_values(){
+  for(int i=0; i<cktin.size(); ++i){ // for each pi
+    wptr pi = cktin[i];
+    cout << "pi: " << pi->name << " = " << pi->value << "\n";
+  }
+  for(int i=0; i<sort_wlist.size(); ++i){ // for each wire (in sort_wlist)
+    wptr wire = sort_wlist[i];
+    for(int j=0; j<wire->onode.size(); ++j){ // for each gate connected to the wire
+      nptr gate = wire->onode[j];
+      if(gate->type != OUTPUT){ // not PO
+        cout << "eval gate(type="<<gate->type<<"): " << gate->name << " = " << gate->owire.front()->value << "\n";
+      }
+      else{
+        cout << "po: " << gate->name << " = " << wire->value << "\n";
+      }
+    }
+  }
+}
 
 void ATPG::evaluate(nptr n) {
   int old_value, new_value;

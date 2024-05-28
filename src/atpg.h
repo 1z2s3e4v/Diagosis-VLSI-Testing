@@ -3,7 +3,7 @@
 /*           ATPG class header file                                   */
 /*                                                                    */
 /*           Author: Bing-Chen (Benson) Wu                            */
-/*           last update : 01/21/2018                                 */
+/*           last update : 02/20/2023                                 */
 /**********************************************************************/
 
 #include <algorithm>
@@ -19,8 +19,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+
 #include <cassert>
 #include <unordered_map>
+#include <set>
 
 #define HASHSIZE 3911
 
@@ -70,10 +72,10 @@ class ATPG {
   /* defined in main.cpp */
   void set_fsim_only(const bool &);
   void set_tdfsim_only(const bool &);
-  void set_failLog_only(const bool &);
+  void set_failLog_only(const bool &); 
   void set_diag_only(const bool &);
-  void read_vectors(const string &);
   void read_faillog(const string &);
+  void read_vectors(const string &);
   void set_total_attempt_num(const int &);
   void set_backtrack_limit(const int &);
 
@@ -98,15 +100,18 @@ class ATPG {
   int num_of_tdf_fault{};
   int detected_num{};
   bool get_tdfsim_only() { return tdfsim_only; }
+
   bool get_failLog_only() { return failLog_only; }
   bool get_diag_only() { return diag_only; }
-    /* faultDiag.cpp  */
+  /* faultDiag.cpp  */
   void fd_generate_fault_list();
   void fd_fault_simulation(int &);
   void fd_fault_sim_a_vector(const string &, int &, int &);
   void set_examined_faults(const string &,const string &,const string &,const string &);
+
   /* defined in atpg.cpp */
   void test();
+  void print_values();
 
 
  private:
@@ -115,25 +120,27 @@ class ATPG {
   class WIRE;
   class NODE;
   class FAULT;
-  class TEST_RESULT;
   typedef WIRE *wptr;                 /* using pointer to access/manipulate the instances of WIRE */
   typedef NODE *nptr;                 /* using pointer to access/manipulate the instances of NODE */
   typedef FAULT *fptr;                 /* using pointer to access/manipulate the instances of FAULT */
-  typedef TEST_RESULT *tsptr;                 /* using pointer to access/manipulate the instances of TEST_RESULT */
   typedef unique_ptr<WIRE> wptr_s;    /* using smart pointer to hold/maintain the instances of WIRE */
   typedef unique_ptr<NODE> nptr_s;    /* using smart pointer to hold/maintain the instances of NODE */
   typedef unique_ptr<FAULT> fptr_s;    /* using smart pointer to hold/maintain the instances of FAULT */
 
+
   /* fault list */
   forward_list<fptr_s> flist;          /* fault list */
   forward_list<fptr> flist_undetect;   /* undetected fault list */
-  forward_list<tsptr> tslist;   /* undetected fault list */
+  // forward_list<tsptr> tslist;          /* undetected fault list */
+
   /* circuit */
   vector<wptr> sort_wlist;             /* sorted wire list with regard to level */
   vector<wptr> cktin;                  /* input wire list */
   vector<wptr> cktout;                 /* output wire list */
+
   /* Examined fault */
-  forward_list<fptr>examined_faults;
+  forward_list<fptr> examined_faults;
+
   /* for parsing circuits */
   array<forward_list<wptr_s>, HASHSIZE> hash_wlist;   /* hashed wire list */
   array<forward_list<nptr_s>, HASHSIZE> hash_nlist;   /* hashed node list */
@@ -147,8 +154,9 @@ class ATPG {
   int total_attempt_num;               /* number of test generation attempted for each fault  */
   bool fsim_only;                      /* flag to indicate fault simulation only */
   bool tdfsim_only;                    /* flag to indicate tdfault simulation only */
-  bool failLog_only;                    /* flag to indicate get fail log only */
-  bool diag_only;                    /* flag to indicate diag only */
+  bool failLog_only;                   /* flag to indicate get fail log only */
+  bool diag_only;                      /* flag to indicate diag only */
+
   /* used in input.cpp to parse circuit*/
   int debug;                           /* != 0 if debugging;  this is a switch of debug mode */
   string filename;                     /* current input file */
@@ -247,9 +255,9 @@ class ATPG {
                                NOTE: we use [0|1|2] in fault-free sim 
                  but we use [00|11|01] in parallel fault sim  */
     int level;                 /* level of the wire */
-    int wire_value1;           /* (32 bits) represents fault-free value for this wire. 
+    int wire_value_g;           /* (32 bits) represents fault-free value for this wire. 
                                   the same [00|11|01] replicated by 16 times (for pfedfs) */
-    int wire_value2;           /* (32 bits) represents values of this wire 
+    int wire_value_f;           /* (32 bits) represents values of this wire 
                                   in the presence of 16 faults. (for pfedfs) */
     int wlist_index;           /* index into the sorted_wlist array */
 
@@ -283,7 +291,7 @@ class ATPG {
     bool is_faulty() { return flag & 64; }
     bool is_changed() { return flag & 128; }
     void set_fault_free() { fault_flag &= ALL_ZERO; }
-    void inject_fault_at(int bit_position) { fault_flag |= (3 << (bit_position << 1)); }  //  inject a fault at bit position.  Two bits (11) means this position is a fault.  When parallel fault sim, this corresponds to fault position in wire_value2 
+    void inject_fault_at(int bit_position) { fault_flag |= (3 << (bit_position << 1)); }  //  inject a fault at bit position.  Two bits (11) means this position is a fault.  When parallel fault sim, this corresponds to fault position in wire_value_f 
     bool has_fault_at(int bit_position) { return fault_flag & (3 << (bit_position << 1)); }
    private:
     int flag = 0;                  /* 32 bit, records state of wire */
@@ -346,15 +354,4 @@ class ATPG {
     int fault_no;              /* fault index */
     int detected_time{};         /* for N-detect */
   }; // class FAULT
-
-  class TEST_RESULT {
-   public:
-    TEST_RESULT();
-
-    int vec_ind;
-    string wire;
-    short expected;         
-    short observed;              
-    string vec;            
-  }; // class TEST_RESULT
 };// class ATPG
