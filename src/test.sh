@@ -1,5 +1,11 @@
 #!/bin/bash   
-
-./atpg -genFailLog ../patterns/c17.pat ../sample_circuits/c17.ckt -fault 23GAT"("9")" g5 GO SA1 > log
-../bin_reference/atpg_reference -genFailLog ../patterns/golden_c17.ptn ../sample_circuits/c17.ckt -fault 23GAT"("9")" g5 GO SA1 > log2
-diff log log2
+pattern="$1"
+circuit="$2"
+wire="$3"
+gate="$4"
+inout="$5"
+fault="$6"
+echo "Reference binary output: "
+../bin_reference/atpg_reference  -genFailLog $pattern $circuit -fault $wire $gate $inout $fault
+echo "My output: "
+./atpg -genFailLog $pattern $circuit -fault $wire $gate $inout $fault
