@@ -7,6 +7,11 @@
 
 #include "atpg.h"
 
+bool ATPG::comparator(ATPG::fptr t1, ATPG::fptr t2)
+{
+    return t1->tfsf * 10 - t1->tpsf > t2->tfsf * 10 - t2->tpsf;
+}
+
 void ATPG::test() {
     string vec;
     int current_detect_num = 0;
@@ -58,8 +63,11 @@ void ATPG::test() {
         
         //display_undetect();
         diag();
+        //sort
+        //flist_undetect.sort(comparator);
         for (fptr f: flist_undetect) {
-            cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf  << endl;
+            f->score =  f->tfsf*10 -  f->tpsf;
+            cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << " score: " << f->score<< endl;
         }
         return;
     }// if failLog only
@@ -171,6 +179,7 @@ ATPG::FAULT::FAULT() {
     this->tfsf = 0;
     this->tpsf = 0;
     this->tfsp = 0;
+    this->score = 0;
 }
 
 ATPG::TEST_RESULT::TEST_RESULT() {

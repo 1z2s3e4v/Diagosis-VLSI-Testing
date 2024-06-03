@@ -41,7 +41,7 @@ void ATPG::diag(){
   int observed, expected;
   trptr fc;
   trptr temp;
-  cout << "123 " << endl;
+  //cout << "123 " << endl;
   //unordered_set<string> wire_name;
   for (auto tc : tr_unexamined1) {
     //fc = *tc;
@@ -49,12 +49,12 @@ void ATPG::diag(){
     
     //wire_name = fc->node->owire.front()->name;
     vec = tc.first;
-    
-    cout << vec << endl;
+    /*cout << vec << endl;
     for (auto c: tc.second)
     {
       cout << c << endl;
-    }
+    }*/
+    
     wptr w, faulty_wire;
     /* array of 16 fptrs, which points to the 16 faults in a simulation packet  */
     fptr simulated_fault_list[num_of_faults_in_parallel];
@@ -107,6 +107,8 @@ void ATPG::diag(){
     }
     for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     f = *pos;
+    //cout << vec << " fault no: " << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << endl;
+    
     if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
     /* consider only active (aka. excited) fault
      * (sa1 with correct output of 0 or sa0 with correct output of 1) */
@@ -115,23 +117,13 @@ void ATPG::diag(){
        * the fault is detected */
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
-        /* if this wire is not yet marked as faulty, mark the wire as faulty
-         * and insert the corresponding wire to the list of faulty wires. */
-        if (!(sort_wlist[f->to_swlist]->is_faulty())) {
-          sort_wlist[f->to_swlist]->set_faulty();
-          wlist_faulty.push_front(sort_wlist[f->to_swlist]);
-        }
-        /* add the fault to the simulated fault list and inject the fault */
-        simulated_fault_list[num_of_fault] = f;
-        inject_fault_value(sort_wlist[f->to_swlist], num_of_fault, f->fault_type);
-        /* mark the wire as having a fault injected
-         * and schedule the outputs of this gate */
-        sort_wlist[f->to_swlist]->set_fault_injected();
-        /* increment the number of simulated faults in this packet */
-        num_of_fault++;
-        /* start_wire_index keeps track of the smallest level of fault in this packet.
-         * this saves simulation time.  */
-        start_wire_index = min(start_wire_index, f->to_swlist);
+        f->detected_time++;
+        if(tc.second.find(sort_wlist[f->to_swlist]->name) == tc.second.end()) f->tfsf++;
+        else f->tpsf++;
+				if (f->detected_time >= this->detected_num)
+				{
+					f->detect = TRUE;
+				}
       } else {
         /* if f is an gate output fault */
         if (f->io == GO) {
@@ -164,11 +156,15 @@ void ATPG::diag(){
         else {
           /* if the fault is propagated, set faulty_wire equal to the faulty wire.
            * faulty_wire is the gate output of f.  */
+          //cout << "123 " << endl;
           faulty_wire = get_faulty_wire(f, fault_type);
           if (faulty_wire != nullptr) {
             /* if the faulty_wire is a primary output, it is detected */
             if (faulty_wire->is_output()) {
               f->detected_time++; /// BONUS
+              //cout << faulty_wire->name;
+              if(tc.second.find(faulty_wire->name) != tc.second.end()) f->tfsf++;
+              else f->tpsf++;
               if(f->detected_time >= detected_num){
                 f->detect = TRUE;
               }
@@ -199,7 +195,6 @@ void ATPG::diag(){
       } // if  gate input fault
     } // if fault is active
 
-    //cout << f->to_swlist << endl;
     /*
      * fault simulation of a packet
      */
@@ -252,14 +247,14 @@ void ATPG::diag(){
             // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
             // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
             if(((Mask[f_idx] & detected) != 0) && ((w->wire_value_g & Mask[f_idx]) != Unknown[f_idx]) && ((w->wire_value_f & Mask[f_idx]) != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-              cout << w->name << " " << vec << endl;
+              //cout << w->name << " " << vec << endl;
               if(tc.second.find(w->name) == tc.second.end()) {
                 simulated_fault_list[f_idx]->tpsf ++;
               }
               else simulated_fault_list[f_idx]->tfsf ++;
               
               //else f->tpsf ++;
-              cout << simulated_fault_list[f_idx]->fault_no << " " << simulated_fault_list[f_idx]->node->name << ":" << (simulated_fault_list[f_idx]->io?"O":"I")<< " "  << sort_wlist[simulated_fault_list[f_idx]->to_swlist]->name << "SA" << simulated_fault_list[f_idx]->fault_type << " tfsf: " << simulated_fault_list[f_idx]->tfsf << " tpsf: " << simulated_fault_list[f_idx]->tpsf  << endl;
+              //cout << simulated_fault_list[f_idx]->fault_no << " " << simulated_fault_list[f_idx]->node->name << ":" << (simulated_fault_list[f_idx]->io?"O":"I")<< " "  << sort_wlist[simulated_fault_list[f_idx]->to_swlist]->name << "SA" << simulated_fault_list[f_idx]->fault_type << " tfsf: " << simulated_fault_list[f_idx]->tfsf << " tpsf: " << simulated_fault_list[f_idx]->tpsf  << endl;
 
               //cout <<  << endl;
             }
@@ -616,7 +611,7 @@ void ATPG::read_faillog(const string &faillog) {
       i++;
     }
     i++;
-    cout << t[i] <<endl;
+    //cout << t[i] <<endl;
     f->observed = t[i] == 'L' ? 0:1;
     while(t[i] != '\'')
     {
@@ -634,14 +629,25 @@ void ATPG::read_faillog(const string &faillog) {
     tr.push_front(move(f)); 
     
     }
+    for ( auto t : tr_unexamined1)
+    {
+      cout << t.first << endl;
+      for (auto kk : t.second)
+      {
+        cout << kk << endl;
+      }
+    }
+    /*
     for (trptr f : tr_unexamined) {
-    cout << "index: "<< f->index << endl;
-    cout <<"node name: " << f->node->name <<", wire name: " << f->node->owire.front()->name << endl;
-    cout <<"expected value: "<< f->expected <<", observed value: " << f->observed <<", vector value: "<< f->vec  << endl;
-    //cout << f->vec << endl;
-    cout << endl;
-    // cout << f->fault_no << " "  << f->node->name << ":" << (f->io?"O":"I") <<" "  << (f->io?9:(f->index)) <<" "  << "SA" << f->fault_type << endl;
-  }
+      cout << "index: "<< f->index << endl;
+      cout <<"node name: " << f->node->name <<", wire name: " << f->node->owire.front()->name << endl;
+      cout <<"expected value: "<< f->expected <<", observed value: " << f->observed <<", vector value: "<< f->vec  << endl;
+      //cout << f->vec << endl;
+      cout << endl;
+      // cout << f->fault_no << " "  << f->node->name << ":" << (f->io?"O":"I") <<" "  << (f->io?9:(f->index)) <<" "  << "SA" << f->fault_type << endl;
+    }
+    */
+    
   file.close(); // close the file
   
 }
