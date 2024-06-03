@@ -22,6 +22,7 @@
 
 #include <cassert>
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 
 #define HASHSIZE 3911
@@ -108,7 +109,7 @@ class ATPG {
   void fd_fault_simulation(int &);
   void fd_fault_sim_a_vector(const string &, int &, int &);
   void set_examined_faults(const string &,const string &,const string &,const string &);
-
+  void diag();
   /* defined in atpg.cpp */
   void test();
   void print_values();
@@ -120,13 +121,15 @@ class ATPG {
   class WIRE;
   class NODE;
   class FAULT;
+  class TEST_RESULT;
   typedef WIRE *wptr;                 /* using pointer to access/manipulate the instances of WIRE */
   typedef NODE *nptr;                 /* using pointer to access/manipulate the instances of NODE */
   typedef FAULT *fptr;                 /* using pointer to access/manipulate the instances of FAULT */
+  typedef TEST_RESULT *trptr;
   typedef unique_ptr<WIRE> wptr_s;    /* using smart pointer to hold/maintain the instances of WIRE */
   typedef unique_ptr<NODE> nptr_s;    /* using smart pointer to hold/maintain the instances of NODE */
   typedef unique_ptr<FAULT> fptr_s;    /* using smart pointer to hold/maintain the instances of FAULT */
-
+  typedef unique_ptr<TEST_RESULT> trptr_s; 
 
   /* fault list */
   forward_list<fptr_s> flist;          /* fault list */
@@ -140,7 +143,10 @@ class ATPG {
 
   /* Examined fault */
   forward_list<fptr> examined_faults;
-
+  /* test result */
+  forward_list<trptr_s> tr;          /* test result list */
+  forward_list<trptr>   tr_unexamined;          /* unexamined test result list */
+  unordered_map<string,unordered_set<string>>   tr_unexamined1; 
   /* for parsing circuits */
   array<forward_list<wptr_s>, HASHSIZE> hash_wlist;   /* hashed wire list */
   array<forward_list<nptr_s>, HASHSIZE> hash_nlist;   /* hashed node list */
@@ -353,5 +359,21 @@ class ATPG {
     int to_swlist;             /* index to the sort_wlist[] */
     int fault_no;              /* fault index */
     int detected_time{};         /* for N-detect */
+    int tfsf;
+    int tpsf;
+    int tfsp;
+  }; // class FAULT
+
+
+  class TEST_RESULT {
+   public:
+    TEST_RESULT();
+
+    nptr node;                 /* gate under test(NIL if PI/PO fault) */
+    short io;                  /* 0 = GI; 1 = GO */
+    int index;           
+    short expected;
+    short observed;
+    string vec;
   }; // class FAULT
 };// class ATPG

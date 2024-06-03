@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
 /* if vector file is provided, read it */
   if (!vetFile.empty()) { atpg.read_vectors(vetFile); }
   // atpg.timer(stdout, "for reading in circuit");
-
+  
   atpg.level_circuit();  // level.cpp
   // atpg.timer(stdout, "for levelling circuit");
 
@@ -114,12 +114,18 @@ int main(int argc, char *argv[]) {
   else if (atpg.get_diag_only()) { // Diagosis
 
   }
-  else if (!atpg.get_failLog_only()) atpg.generate_fault_list(); //init_flist.cpp
+  
+  else if (atpg.get_failLog_only()){};
+  if (!failLog.empty())
+	{
+		atpg.read_faillog(failLog);
+    atpg.generate_fault_list();
+	}
   // else atpg.generate_tdfault_list();
   // atpg.timer(stdout, "for generating fault list");
 
   atpg.test(); //defined in atpg.cpp
-  if (!atpg.get_tdfsim_only() && !atpg.get_failLog_only()) atpg.compute_fault_coverage(); //init_flist.cpp
+  if (!atpg.get_tdfsim_only() && !atpg.get_failLog_only() && !atpg.get_diag_only()) atpg.compute_fault_coverage(); //init_flist.cpp
   // atpg.timer(stdout, "for test pattern generation");
   exit(EXIT_SUCCESS);
 }

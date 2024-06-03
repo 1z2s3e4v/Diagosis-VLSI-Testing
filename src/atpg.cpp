@@ -17,8 +17,10 @@ void ATPG::test() {
     int no_of_redundant_faults = 0;
     int no_of_calls = 0;
 
-    fptr fault_under_test = flist_undetect.front();
-
+    fptr fault_under_test;
+    if (!failLog_only) fault_under_test = flist_undetect.front();
+    else fault_under_test = examined_faults.front();
+    
     /* stuck-at fault sim mode */
     if (fsim_only) {
         fault_simulate_vectors(total_detect_num);
@@ -51,7 +53,16 @@ void ATPG::test() {
         return;
     }// if failLog only
 
+    if (diag_only) {
 
+        
+        //display_undetect();
+        diag();
+        for (fptr f: flist_undetect) {
+            cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf  << endl;
+        }
+        return;
+    }// if failLog only
 
     /* test generation mode */
     /* Figure 5 in the PODEM paper */
@@ -116,7 +127,8 @@ ATPG::ATPG() {
     this->total_attempt_num = 1;    /* default value */
     this->fsim_only = false;        /* flag to indicate fault simulation only */
     this->tdfsim_only = false;      /* flag to indicate tdfault simulation only */
-
+    this->failLog_only = false;
+    this->diag_only = false;
     /* orginally assigned in input.c */
     this->debug = 0;                /* != 0 if debugging;  this is a switch of debug mode */
     this->lineno = 0;               /* current line number */
@@ -156,5 +168,17 @@ ATPG::FAULT::FAULT() {
     this->eqv_fault_num = 0;
     this->to_swlist = 0;
     this->fault_no = 0;
+    this->tfsf = 0;
+    this->tpsf = 0;
+    this->tfsp = 0;
+}
+
+ATPG::TEST_RESULT::TEST_RESULT() {
+    this->node = nullptr;
+    this->io = 0;
+    this->index = 0;
+    this->observed = 0;
+    this->expected = 0;
+    this->vec = "";
 }
 
