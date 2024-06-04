@@ -7,9 +7,33 @@
 
 #include "atpg.h"
 
-bool ATPG::comparator(ATPG::fptr t1, ATPG::fptr t2)
+void ATPG::ranking()
 {
-    return t1->tfsf * 10 - t1->tpsf > t2->tfsf * 10 - t2->tpsf;
+    int flist_size = distance(flist_undetect.cbegin(), flist_undetect.cend());
+    int i,j;
+    bool swapped;
+    i = 0;
+    for (auto t1 = flist_undetect.cbegin(); t1 != flist_undetect.cend(); ++t1)
+    {
+        swapped = false;
+        j= 0;
+        for (auto t2 = flist_undetect.cbegin(); t2 != flist_undetect.cend() && j < flist_size - i - 1; ++t2) {
+            //cout << (*t1)->score << " " << (*t2)->score;
+            if ((*t1)->score < (*t2)->score) {
+                //cout << (*t1)->fault_no << " " << (*t2)->fault_no << endl;;
+                swap(t1, t2);
+                
+                swapped = true;
+            }
+            j++;
+        }
+
+        // If no two elements were swapped
+        // by inner loop, then break
+        if (swapped == false)
+            break;
+        i++;
+    }
 }
 
 void ATPG::test() {
@@ -64,9 +88,11 @@ void ATPG::test() {
         //display_undetect();
         diag();
         //sort
-        //flist_undetect.sort(comparator);
+        //std::sort(flist_undetect.begin(), flist_undetect.end() ,  {[](const fptr t1, const fptr t2){return t1->score > t2->score;}});
+        ranking();
+        //sort_diagnosis_score();
         for (fptr f: flist_undetect) {
-            f->score =  f->tfsf*10 -  f->tpsf;
+            //f->score =  f->tfsf*10 -  f->tpsf;
             cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << " score: " << f->score<< endl;
         }
         return;
