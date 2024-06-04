@@ -109,7 +109,12 @@ void ATPG::diag(){
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
         for (auto wo  : cktout)
         {
-          if(wo->name==sort_wlist[f->to_swlist]->name && (tc.second.find(sort_wlist[f->to_swlist]->name) != tc.second.end())){f->tfsf++; f->score +=10;}
+          if(wo->name==sort_wlist[f->to_swlist]->name && (tc.second.find(sort_wlist[f->to_swlist]->name) != tc.second.end()))
+          { 
+            f->tfsf++;
+            f->tfsp--; 
+            f->score +=10;
+          }
           else {f->tpsf++; f->score--;}
         }
       } else {
@@ -152,6 +157,7 @@ void ATPG::diag(){
               //cout << faulty_wire->name;
               if(tc.second.find(faulty_wire->name) != tc.second.end()){
                 f->tfsf++;
+                f->tfsp--;
                 f->score +=10;
               } 
               else {
@@ -245,6 +251,7 @@ void ATPG::diag(){
               else 
               {
                 simulated_fault_list[f_idx]->tfsf++;
+                simulated_fault_list[f_idx]->tfsp--;
                 simulated_fault_list[f_idx]->score += 10;
               }
               //else f->tpsf ++;
@@ -267,11 +274,12 @@ void ATPG::diag(){
   }
   flist_undetect.remove_if(
       [&](const fptr f) {
-        if (f->tfsf*10 -  f->tpsf <= 0) {
+        if (f->tfsf == 0) {
                       //cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << " score: " << f->score<< endl;
 
           return true;
         } else {
+          f->score = ((double) f->tfsf*10)/((double) (f->tfsf*10 + f->tfsp*10 + f->tpsf))*100;
           ranks.push_back(f);
           return false;
         }
@@ -581,65 +589,65 @@ void ATPG::read_faillog(const string &faillog) {
     exit(EXIT_FAILURE);
   }
     while (!file.eof() && !file.bad()) {
-    getline(file, t); // get a line from the file
-    if(t.size() == 0) break;
-    vec.clear();
-    f = move(trptr_s(new (nothrow) TEST_RESULT));
-    if (f == nullptr)
-      error("No more room!");
-    i = 0;
-    f->index = k++;
-    while(t[i] != ' ')
-    {
-      i++;
-    }
-    i++;
-    while(t[i] != ' ')
-    {
-      vec += t[i];
-      i++;
-    }
-    i++;
-    
-    for (int j = swlist_size - 1; j >=0 ; j--)
-    {
-      //cout << sort_wlist[j]->name << endl;
-      if (sort_wlist[j]->name == vec)
+      getline(file, t); // get a line from the file
+      if(t.size() == 0) break;
+      vec.clear();
+      f = move(trptr_s(new (nothrow) TEST_RESULT));
+      if (f == nullptr)
+        error("No more room!");
+      i = 0;
+      f->index = k++;
+      while(t[i] != ' ')
       {
-        f->node = sort_wlist[j]->inode.front();
-        break;
+        i++;
       }
-    }
-    vec.clear();
-    while(t[i] != ' ')
-    {
       i++;
-    }
-    i++;
-    f->expected = t[i] == 'L' ? 0:1;
-    i+= 3;
-    while(t[i] != ' ')
-    {
+      while(t[i] != ' ')
+      {
+        vec += t[i];
+        i++;
+      }
       i++;
-    }
-    i++;
-    //cout << t[i] <<endl;
-    f->observed = t[i] == 'L' ? 0:1;
-    while(t[i] != '\'')
-    {
+      
+      for (int j = swlist_size - 1; j >=0 ; j--)
+      {
+        //cout << sort_wlist[j]->name << endl;
+        if (sort_wlist[j]->name == vec)
+        {
+          f->node = sort_wlist[j]->inode.front();
+          break;
+        }
+      }
+      vec.clear();
+      while(t[i] != ' ')
+      {
+        i++;
+      }
       i++;
-    }
-    i++;
-    while(t[i] != '\'')
-    {
-      vec += t[i];
+      f->expected = t[i] == 'L' ? 0:1;
+      i+= 3;
+      while(t[i] != ' ')
+      {
+        i++;
+      }
       i++;
-    }
-    f->vec = vec;
-    tr_unexamined1[vec].insert(f->node->owire.front()->name);
-    //tr_unexamined.push_front(f.get()); 
-    tr.push_front(move(f)); 
-    
+      //cout << t[i] <<endl;
+      f->observed = t[i] == 'L' ? 0:1;
+      while(t[i] != '\'')
+      {
+        i++;
+      }
+      i++;
+      while(t[i] != '\'')
+      {
+        vec += t[i];
+        i++;
+      }
+      f->vec = vec;
+      tr_unexamined1[vec].insert(f->node->owire.front()->name);
+      //tr_unexamined.push_front(f.get()); 
+      tr.push_front(move(f)); 
+      test_fails++;
     }
     for ( auto t : tr_unexamined1)
     {
@@ -649,6 +657,7 @@ void ATPG::read_faillog(const string &faillog) {
         //cout << kk << endl;
       }
     }
+    
     /*
     for (trptr f : tr_unexamined) {
       cout << "index: "<< f->index << endl;

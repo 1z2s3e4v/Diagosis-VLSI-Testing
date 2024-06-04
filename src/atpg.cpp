@@ -76,18 +76,18 @@ void ATPG::test() {
 
     if (diag_only) {
 
-        
-        //display_undetect();
-        diag();
-        ranking();
         int count = 1;
         int group = 0;
         int max = 9999;
+        //display_undetect();
+        diag();
+        ranking();
+        
         for (fptr f: ranks) {
             
             if(max > f->score) {max= f->score; group++;}
-            printf("No.%d %s %s %s SA%d, GroudID: %d, TFSF: %d, TPSF: %d, Score: %d     \n", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
-                                             (f->io?"GO":"GI"), f->fault_type, group, f->tfsf, f->tpsf, f->score);
+            printf("No.%d %s %s %s SA%d, GroudID: %d, TFSF: %d, TPSF: %d, TFSP: %d Score: %.2f     \n", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
+                                             (f->io?"GO":"GI"), f->fault_type, group, f->tfsf, f->tpsf, f->tfsp, f->score);
             //cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << " score: " << f->score<< endl;
         }
         return;
@@ -169,6 +169,7 @@ ATPG::ATPG() {
 
     /* orginally assigned in test.c */
     this->in_vector_no = 0;         /* number of test vectors generated */
+    this->test_fails = 0;
 }
 
 /* constructor of WIRE */

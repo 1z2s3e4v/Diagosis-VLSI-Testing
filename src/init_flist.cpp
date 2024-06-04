@@ -26,6 +26,7 @@ void ATPG::generate_fault_list() {
     /* for each gate, create a gate output stuck-at zero (SA0) fault */
     f = move(fptr_s(new(nothrow) FAULT));
     if (f == nullptr) error("No more room!");
+    f->tfsp = test_fails;
     f->node = n;
 
     f->io = GO;     // gate output SA0 fault
@@ -74,6 +75,7 @@ void ATPG::generate_fault_list() {
     f = move(fptr_s(new(nothrow) FAULT));
 
     if (f == nullptr) error("No more room!");
+    f->tfsp = test_fails;
     f->eqv_fault_num = 1;
     f->node = n;
     f->io = GO;
@@ -126,6 +128,7 @@ void ATPG::generate_fault_list() {
           case XOR:
             f = move(fptr_s(new(nothrow) FAULT));
             if (f == nullptr) error("No more room!");
+            f->tfsp = test_fails;
             f->node = nptr_ele;
             f->io = GI;
             f->fault_type = STUCK0;
@@ -150,6 +153,7 @@ void ATPG::generate_fault_list() {
           case XOR:
             f = move(fptr_s(new(nothrow) FAULT));
             if (f == nullptr) error("No more room!");
+            f->tfsp = test_fails; 
             f->node = nptr_ele;
             f->io = GI;
             f->fault_type = STUCK1;

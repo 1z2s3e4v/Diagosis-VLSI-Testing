@@ -145,6 +145,7 @@ class ATPG {
   /* test result */
   forward_list<trptr_s> tr;          /* test result list */
   forward_list<trptr>   tr_unexamined;          /* unexamined test result list */
+  int test_fails;
   unordered_map<string,unordered_set<string>>   tr_unexamined1; 
   /* for parsing circuits */
   array<forward_list<wptr_s>, HASHSIZE> hash_wlist;   /* hashed wire list */
@@ -362,7 +363,7 @@ class ATPG {
     int tfsf;
     int tpsf;
     int tfsp;
-    int score;
+    double score;
   }; // class FAULT
 
 
