@@ -69,7 +69,6 @@ class ATPG {
  public:
 
   ATPG();
-
   /* defined in main.cpp */
   void set_fsim_only(const bool &);
   void set_tdfsim_only(const bool &);
@@ -135,7 +134,7 @@ class ATPG {
   forward_list<fptr_s> flist;          /* fault list */
   forward_list<fptr> flist_undetect;   /* undetected fault list */
   // forward_list<tsptr> tslist;          /* undetected fault list */
-
+  vector<fptr> ranks;
   /* circuit */
   vector<wptr> sort_wlist;             /* sorted wire list with regard to level */
   vector<wptr> cktin;                  /* input wire list */
@@ -196,7 +195,7 @@ class ATPG {
   int ctoi(const char &);
 
   /* declared in faultsim.cpp */
-  bool comparator(const fptr ,const fptr );
+  
   unsigned int Mask[16] = {0x00000003, 0x0000000c, 0x00000030, 0x000000c0,
                            0x00000300, 0x00000c00, 0x00003000, 0x0000c000,
                            0x00030000, 0x000c0000, 0x00300000, 0x00c00000,

@@ -108,8 +108,12 @@ void ATPG::diag(){
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
         f->detected_time++;
-        if(tc.second.find(sort_wlist[f->to_swlist]->name) == tc.second.end()) f->tfsf++;
-        else f->tpsf++;
+        
+        for (auto wo  : cktout)
+        {
+          if(wo->name==sort_wlist[f->to_swlist]->name && (tc.second.find(sort_wlist[f->to_swlist]->name) != tc.second.end())){f->tfsf++; f->score +=10;}
+          else {f->tpsf++; f->score--;}
+        }
 				if (f->detected_time >= this->detected_num)
 				{
 					f->detect = TRUE;
@@ -278,6 +282,7 @@ void ATPG::diag(){
 
           return true;
         } else {
+          ranks.push_back(f);
           return false;
         }
       });
