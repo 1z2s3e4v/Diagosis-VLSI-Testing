@@ -269,15 +269,18 @@ void ATPG::diag(){
       start_wire_index = 10000;  //reset this index to a very large value.
     } // end fault sim of a packet
   }
+  
+  }
   flist_undetect.remove_if(
-      [&](const fptr fptr_ele) {
-        if (fptr_ele->tfsf*10 -  fptr_ele->tpsf <= 0) {
+      [&](const fptr f) {
+        if (f->tfsf*10 -  f->tpsf <= 0) {
+                      //cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << " score: " << f->score<< endl;
+
           return true;
         } else {
           return false;
         }
       });
-}
 }
 /* fault simulate a single test vector */
 void ATPG::fd_fault_sim_a_vector(const string &vec, int &num_of_current_detect, int &vec_index) {
@@ -633,16 +636,16 @@ void ATPG::read_faillog(const string &faillog) {
     }
     f->vec = vec;
     tr_unexamined1[vec].insert(f->node->owire.front()->name);
-    tr_unexamined.push_front(f.get()); 
+    //tr_unexamined.push_front(f.get()); 
     tr.push_front(move(f)); 
     
     }
     for ( auto t : tr_unexamined1)
     {
-      cout << t.first << endl;
+      //cout << t.first << endl;
       for (auto kk : t.second)
       {
-        cout << kk << endl;
+        //cout << kk << endl;
       }
     }
     /*
