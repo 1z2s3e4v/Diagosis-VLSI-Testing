@@ -376,5 +376,6 @@ class ATPG {
     short expected;
     short observed;
     string vec;
+    bool detect;
   }; // class FAULT
 };// class ATPG

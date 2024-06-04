@@ -107,17 +107,11 @@ void ATPG::diag(){
        * the fault is detected */
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
-        f->detected_time++;
-        
         for (auto wo  : cktout)
         {
           if(wo->name==sort_wlist[f->to_swlist]->name && (tc.second.find(sort_wlist[f->to_swlist]->name) != tc.second.end())){f->tfsf++; f->score +=10;}
           else {f->tpsf++; f->score--;}
         }
-				if (f->detected_time >= this->detected_num)
-				{
-					f->detect = TRUE;
-				}
       } else {
         /* if f is an gate output fault */
         if (f->io == GO) {
@@ -155,7 +149,6 @@ void ATPG::diag(){
           if (faulty_wire != nullptr) {
             /* if the faulty_wire is a primary output, it is detected */
             if (faulty_wire->is_output()) {
-              f->detected_time++; /// BONUS
               //cout << faulty_wire->name;
               if(tc.second.find(faulty_wire->name) != tc.second.end()){
                 f->tfsf++;
@@ -164,9 +157,6 @@ void ATPG::diag(){
               else {
                 f->tpsf++;
                 f->score--;
-              }
-              if(f->detected_time >= detected_num){
-                f->detect = TRUE;
               }
             } else {
               /* if faulty_wire is not already marked as faulty, mark it as faulty
