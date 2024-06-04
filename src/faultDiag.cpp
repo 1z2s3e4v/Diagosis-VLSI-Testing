@@ -269,6 +269,14 @@ void ATPG::diag(){
       start_wire_index = 10000;  //reset this index to a very large value.
     } // end fault sim of a packet
   }
+  flist_undetect.remove_if(
+      [&](const fptr fptr_ele) {
+        if (fptr_ele->tfsf*10 -  fptr_ele->tpsf <= 0) {
+          return true;
+        } else {
+          return false;
+        }
+      });
 }
 }
 /* fault simulate a single test vector */
