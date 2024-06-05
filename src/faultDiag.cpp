@@ -137,12 +137,13 @@ void ATPG::diag(){
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
         for (auto wo  : cktout) {
-          if(wo->name==sort_wlist[f->to_swlist]->name && (tc.second.find(sort_wlist[f->to_swlist]->name) != tc.second.end())) { 
-            f->tfsf++;
-            f->tfsp--; 
-            f->score +=10;
+          if (wo->name==sort_wlist[f->to_swlist]->name ){
+            if((tc.second.find(sort_wlist[f->to_swlist]->name) != tc.second.end())) { 
+              f->tfsf++;
+              f->tfsp--; 
+            }
+            else {f->tpsf++;}
           }
-          else {f->tpsf++; f->score--;}
         }
       } else {
         /* if f is an gate output fault */
@@ -185,11 +186,9 @@ void ATPG::diag(){
               if(tc.second.find(faulty_wire->name) != tc.second.end()){
                 f->tfsf++;
                 f->tfsp--;
-                f->score +=10;
               } 
               else {
-                f->tpsf++;
-                f->score--;
+                f->tpsf++;  
               }
             } else {
               /* if faulty_wire is not already marked as faulty, mark it as faulty
@@ -273,13 +272,12 @@ void ATPG::diag(){
               //cout << w->name << " " << vec << endl;
               if(tc.second.find(w->name) == tc.second.end()) {
                 simulated_fault_list[f_idx]->tpsf++;
-                simulated_fault_list[f_idx]->score --;
               }
               else 
               {
                 simulated_fault_list[f_idx]->tfsf++;
                 simulated_fault_list[f_idx]->tfsp--;
-                simulated_fault_list[f_idx]->score += 10;
+              
               }
               //else f->tpsf ++;
               //cout << simulated_fault_list[f_idx]->fault_no << " " << simulated_fault_list[f_idx]->node->name << ":" << (simulated_fault_list[f_idx]->io?"O":"I")<< " "  << sort_wlist[simulated_fault_list[f_idx]->to_swlist]->name << "SA" << simulated_fault_list[f_idx]->fault_type << " tfsf: " << simulated_fault_list[f_idx]->tfsf << " tpsf: " << simulated_fault_list[f_idx]->tpsf  << endl;
