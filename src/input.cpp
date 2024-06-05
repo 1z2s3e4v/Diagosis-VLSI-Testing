@@ -218,8 +218,8 @@ void ATPG::input(const string &infile) {
     }
   }
 
-  int ncktnode = 0;
-  int ncktwire = 0;
+  ncktnode = 0;
+  ncktwire = 0;
   for (int i = 0; i < HASHSIZE; i++) {
     ncktnode += distance(hash_nlist[i].begin(), hash_nlist[i].end());
     ncktwire += distance(hash_wlist[i].begin(), hash_wlist[i].end());
@@ -228,13 +228,13 @@ void ATPG::input(const string &infile) {
   file.close();
   create_structure();
   if(diag_only){
-    fprintf(stdout, "\n");
-    fprintf(stdout, "#Circuit Summary:\n");
-    fprintf(stdout, "#---------------\n");
-    fprintf(stdout, "#number of inputs = %d\n", int(cktin.size()));
-    fprintf(stdout, "#number of outputs = %d\n", int(cktout.size()));
-    fprintf(stdout, "#number of gates = %d\n", ncktnode);
-    fprintf(stdout, "#number of wires = %d\n", ncktwire);
+    // fprintf(stdout, "\n");
+    // fprintf(stdout, "#Circuit Summary:\n");
+    // fprintf(stdout, "#---------------\n");
+    // fprintf(stdout, "#number of inputs = %d\n", int(cktin.size()));
+    // fprintf(stdout, "#number of outputs = %d\n", int(cktout.size()));
+    // fprintf(stdout, "#number of gates = %d\n", ncktnode);
+    // fprintf(stdout, "#number of wires = %d\n", ncktwire);
   }
   if (debug) display_circuit();
   //display_circuit();
@@ -411,13 +411,9 @@ void ATPG::read_vectors(const string &vetFile) {
     }
   }
   file.close(); // close the file
-
-  if(diag_only){
-    fprintf(stdout, "#number of vectors = %d\n", vectors.size());
-  }
 }
 
-void ATPG::read_faillog(const string &faillog) {  
+void ATPG::read_faillog(const string &faillog) {
   string t, vec;
   int i, k = 0;
   int swlist_size = sort_wlist.size();
@@ -452,8 +448,7 @@ void ATPG::read_faillog(const string &faillog) {
     
     for (int j = swlist_size - 1; j >=0 ; j--){
       //cout << sort_wlist[j]->name << endl;
-      if (sort_wlist[j]->name == vec)
-      {
+      if (sort_wlist[j]->name == vec){
         f->node = sort_wlist[j]->inode.front();
         break;
       }
@@ -481,19 +476,27 @@ void ATPG::read_faillog(const string &faillog) {
     }
     f->vec = vec;
     tr_unexamined1[vec].insert(f->node->owire.front()->name);
-    tr_unexamined.push_front(f.get()); 
+    //tr_unexamined.push_front(f.get()); 
     tr.push_front(move(f)); 
-    
+    test_fails++;
   }
-  for ( auto t : tr_unexamined1){
-    cout << t.first << endl;
-    for (auto kk : t.second){
-      cout << kk << endl;
-    }
-  }
-  file.close(); // close the file
+  // for ( auto t : tr_unexamined1)
+  // {
+  //   cout << t.first << endl;
+  //   for (auto kk : t.second)
+  //   {
+  //     cout << kk << endl;
+  //   }
+  // }
   
-  if(diag_only){
-    fprintf(stdout, "#number of failing outputs = %d\n", tr_unexamined1.size()); /// test
-  }
+  
+  // for (trptr f : tr_unexamined) {
+  //   cout << "index: "<< f->index << endl;
+  //   cout <<"node name: " << f->node->name <<", wire name: " << f->node->owire.front()->name << endl;
+  //   cout <<"expected value: "<< f->expected <<", observed value: " << f->observed <<", vector value: "<< f->vec  << endl;
+  //   //cout << f->vec << endl;
+  //   cout << endl;
+  //   // cout << f->fault_no << " "  << f->node->name << ":" << (f->io?"O":"I") <<" "  << (f->io?9:(f->index)) <<" "  << "SA" << f->fault_type << endl;
+  // }
+  file.close(); // close the file
 }

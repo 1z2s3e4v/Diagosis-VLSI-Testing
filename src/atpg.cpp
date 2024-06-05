@@ -6,12 +6,7 @@
 /**********************************************************************/
 
 #include "atpg.h"
-
-bool ATPG::comparator(ATPG::fptr t1, ATPG::fptr t2)
-{
-    return t1->tfsf * 10 - t1->tpsf > t2->tfsf * 10 - t2->tpsf;
-}
-
+    
 void ATPG::test() {
     string vec;
     int current_detect_num = 0;
@@ -59,15 +54,24 @@ void ATPG::test() {
     }// if failLog only
 
     if (diag_only) {
-
-        
+        int count = 1;
+        int group = 0;
+        int max = 9999;
         //display_undetect();
+        print_circuit_summary();
+
         diag();
-        //sort
-        //flist_undetect.sort(comparator);
-        for (fptr f: flist_undetect) {
-            f->score =  f->tfsf*10 -  f->tpsf;
-            cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << " score: " << f->score<< endl;
+        ranking();
+
+        for (fptr f: ranks) {
+            if(max > f->score) {max= f->score; group++;}
+            printf("No.%d %s %s %s SA%d, GroudID: %d, TFSF: %d, TPSF: %d, TFSP: %d Score: %.2f [ equivalent faults: ", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
+                                             (f->io?"GO":"GI"), f->fault_type, group, f->tfsf, f->tpsf, f->tfsp, f->score);
+            // [ equivalent faults: 7GAT dummy_gate5 GO SA0, 11GAT g3 GI SA0, ]
+            for(fptr eqv_f : f->eqv_faults){ // TODO: set eqv_faults in f->eqv_faults, so we can get faults here
+                printf("%s %s %s SA%d, ", sort_wlist[eqv_f->to_swlist]->name.c_str(), eqv_f->node->name.c_str(), (eqv_f->io?"GO":"GI"), eqv_f->fault_type);
+            }
+            printf("]\n");
         }
         return;
     }// if failLog only
@@ -148,6 +152,7 @@ ATPG::ATPG() {
 
     /* orginally assigned in test.c */
     this->in_vector_no = 0;         /* number of test vectors generated */
+    this->test_fails = 0;
 }
 
 /* constructor of WIRE */
@@ -189,5 +194,6 @@ ATPG::TEST_RESULT::TEST_RESULT() {
     this->observed = 0;
     this->expected = 0;
     this->vec = "";
+    this->detect = FALSE;
 }
 

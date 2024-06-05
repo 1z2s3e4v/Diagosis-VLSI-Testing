@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
 
   atpg.test(); //defined in atpg.cpp
   if (!atpg.get_tdfsim_only() && !atpg.get_failLog_only() && !atpg.get_diag_only()) atpg.compute_fault_coverage(); //init_flist.cpp
-  // atpg.timer(stdout, "for test pattern generation");
+  atpg.timer(stdout, "runtimes: ");
   exit(EXIT_SUCCESS);
 }
 

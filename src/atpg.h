@@ -69,7 +69,6 @@ class ATPG {
  public:
 
   ATPG();
-
   /* defined in main.cpp */
   void set_fsim_only(const bool &);
   void set_tdfsim_only(const bool &);
@@ -104,12 +103,16 @@ class ATPG {
 
   bool get_failLog_only() { return failLog_only; }
   bool get_diag_only() { return diag_only; }
+
   /* faultDiag.cpp  */
   void fd_generate_fault_list();
   void fd_fault_simulation(int &);
   void fd_fault_sim_a_vector(const string &, int &, int &);
   void set_examined_faults(const string &,const string &,const string &,const string &);
   void diag();
+  void ranking();
+  void print_circuit_summary();
+  
   /* defined in atpg.cpp */
   void test();
   void print_values();
@@ -131,11 +134,14 @@ class ATPG {
   typedef unique_ptr<FAULT> fptr_s;    /* using smart pointer to hold/maintain the instances of FAULT */
   typedef unique_ptr<TEST_RESULT> trptr_s; 
 
+  int ncktnode = 0;
+  int ncktwire = 0;
+
   /* fault list */
   forward_list<fptr_s> flist;          /* fault list */
   forward_list<fptr> flist_undetect;   /* undetected fault list */
   // forward_list<tsptr> tslist;          /* undetected fault list */
-
+  vector<fptr> ranks;
   /* circuit */
   vector<wptr> sort_wlist;             /* sorted wire list with regard to level */
   vector<wptr> cktin;                  /* input wire list */
@@ -146,7 +152,9 @@ class ATPG {
   /* test result */
   forward_list<trptr_s> tr;          /* test result list */
   forward_list<trptr>   tr_unexamined;          /* unexamined test result list */
+  int test_fails;
   unordered_map<string,unordered_set<string>>   tr_unexamined1; 
+  vector<wptr> failOuts;
   /* for parsing circuits */
   array<forward_list<wptr_s>, HASHSIZE> hash_wlist;   /* hashed wire list */
   array<forward_list<nptr_s>, HASHSIZE> hash_nlist;   /* hashed node list */
@@ -196,7 +204,7 @@ class ATPG {
   int ctoi(const char &);
 
   /* declared in faultsim.cpp */
-  bool comparator(fptr , fptr );
+  
   unsigned int Mask[16] = {0x00000003, 0x0000000c, 0x00000030, 0x000000c0,
                            0x00000300, 0x00000c00, 0x00003000, 0x0000c000,
                            0x00030000, 0x000c0000, 0x00300000, 0x00c00000,
@@ -246,7 +254,7 @@ class ATPG {
   void display_undetect();
   void display_fd_undetect();
   void display_fault(fptr);
-
+  
 
   /* declaration of WIRE, NODE, and FAULT classes */
   /* in our model, a wire has inputs (inode) and outputs (onode) */
@@ -362,7 +370,8 @@ class ATPG {
     int tfsf;
     int tpsf;
     int tfsp;
-    int score;
+    double score;
+    vector<fptr> eqv_faults; /* indice of euivilent faults */
   }; // class FAULT
 
 
@@ -376,5 +385,6 @@ class ATPG {
     short expected;
     short observed;
     string vec;
+    bool detect;
   }; // class FAULT
 };// class ATPG
