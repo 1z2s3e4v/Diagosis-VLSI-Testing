@@ -31,8 +31,8 @@ void ATPG::print_circuit_summary(){
     fprintf(stdout, "#number of outputs = %d\n", int(cktout.size()));
     fprintf(stdout, "#number of gates = %d\n", ncktnode);
     fprintf(stdout, "#number of wires = %d\n", ncktwire);
-    fprintf(stdout, "#number of vectors = %d\n", vectors.size()); //// TODO: Calculate for the correct value (i'm not sure what this value should be)
-    fprintf(stdout, "#number of failing outputs = %d\n", failOuts.size()); //// TODO: Run sim() after reading failLog and Count how many failing outputs
+    fprintf(stdout, "#number of vectors = %d\n", tr_unexamined1.size()); 
+    fprintf(stdout, "#number of failing outputs = %d\n", test_fails);
     fprintf(stdout, "\n");
 }
 
