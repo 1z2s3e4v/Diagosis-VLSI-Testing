@@ -370,6 +370,7 @@ class ATPG {
     int tfsf;
     int tpsf;
     int tfsp;
+    int tpsp;
     double score;
     vector<fptr> eqv_faults; /* indice of euivilent faults */
   }; // class FAULT

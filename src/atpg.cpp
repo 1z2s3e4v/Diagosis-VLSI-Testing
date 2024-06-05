@@ -57,17 +57,22 @@ void ATPG::test() {
         int count = 1;
         int group = 0;
         int max = 9999;
+        bool perfect = false;
         //display_undetect();
         print_circuit_summary();
 
         diag();
         ranking();
-
+        
         for (fptr f: ranks) {
+            if (f->score == 100) perfect = true;
+
             if(max > f->score) {max= f->score; group++;}
-            printf("No.%d %s %s %s SA%d, GroudID: %d, TFSF: %d, TPSF: %d, TFSP: %d Score: %.2f [ equivalent faults: ", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
-                                             (f->io?"GO":"GI"), f->fault_type, group, f->tfsf, f->tpsf, f->tfsp, f->score);
+            if(perfect && f->score != 100) break;
+            printf("No.%d %s %s %s SA%d, GroudID: %d, TFSF: %d, TPSF: %d, TFSP: %d, TPSP: %d Score: %.2f [ equivalent faults: ", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
+                                             (f->io?"GO":"GI"), f->fault_type, group, f->tfsf, f->tpsf, f->tfsp, f->tpsp, f->score);
             // [ equivalent faults: 7GAT dummy_gate5 GO SA0, 11GAT g3 GI SA0, ]
+            
             for(fptr eqv_f : f->eqv_faults){ // TODO: set eqv_faults in f->eqv_faults, so we can get faults here
                 printf("%s %s %s SA%d, ", sort_wlist[eqv_f->to_swlist]->name.c_str(), eqv_f->node->name.c_str(), (eqv_f->io?"GO":"GI"), eqv_f->fault_type);
             }
@@ -184,6 +189,7 @@ ATPG::FAULT::FAULT() {
     this->tfsf = 0;
     this->tpsf = 0;
     this->tfsp = 0;
+    this->tpsp = 0;
     this->score = 0;
 }
 

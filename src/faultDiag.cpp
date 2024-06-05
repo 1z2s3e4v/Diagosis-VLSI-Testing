@@ -66,13 +66,13 @@ void ATPG::fd_fault_simulation(int &total_detect_num) {
 }// fd_fault_simulation
 /* diagnosis */
 void ATPG::diag(){
-  string vec, wire_name;
+  string  wire_name;
   int observed, expected;
   trptr fc;
   trptr temp;
 
-  for (auto tc : tr_unexamined1) {
-    vec = tc.first;
+  for (auto vec : vectors) {
+    //vec = tc.first;
     
     wptr w, faulty_wire;
     /* array of 16 fptrs, which points to the 16 faults in a simulation packet  */
@@ -136,15 +136,17 @@ void ATPG::diag(){
        * the fault is detected */
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
-        for (auto wo  : cktout) {
-          if (wo->name==sort_wlist[f->to_swlist]->name ){
-            if((tc.second.find(sort_wlist[f->to_swlist]->name) != tc.second.end())) { 
-              f->tfsf++;
-              f->tfsp--; 
-            }
-            else {f->tpsf++;}
+        
+        if(!tr_unexamined1[vec].empty())
+        {
+          if((tr_unexamined1[vec].find(sort_wlist[f->to_swlist]->name) != tr_unexamined1[vec].end())) { 
+            f->tfsf++;
+            f->tfsp--;
           }
-        }
+          else {f->tpsf++;}
+          // no fault is supposed to occur
+        } else {f->tpsf++;}
+      
       } else {
         /* if f is an gate output fault */
         if (f->io == GO) {
@@ -182,14 +184,15 @@ void ATPG::diag(){
           if (faulty_wire != nullptr) {
             /* if the faulty_wire is a primary output, it is detected */
             if (faulty_wire->is_output()) {
-              //cout << faulty_wire->name;
-              if(tc.second.find(faulty_wire->name) != tc.second.end()){
-                f->tfsf++;
-                f->tfsp--;
-              } 
-              else {
-                f->tpsf++;  
-              }
+              if(!tr_unexamined1[vec].empty())
+              {
+                if((tr_unexamined1[vec].find(sort_wlist[f->to_swlist]->name) != tr_unexamined1[vec].end())) { 
+                  f->tfsf++;
+                  f->tfsp--;
+                }
+                else {f->tpsf++;}
+                // no fault is supposed to occur
+              } else {f->tpsf++;}
             } else {
               /* if faulty_wire is not already marked as faulty, mark it as faulty
                * and add the wire to the list of faulty wires. */
@@ -216,7 +219,7 @@ void ATPG::diag(){
         }
       } // if  gate input fault
     } // if fault is active
-
+    else f->tpsp++;
     /*
      * fault simulation of a packet
      */
@@ -269,20 +272,15 @@ void ATPG::diag(){
             // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
             // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
             if(((Mask[f_idx] & detected) != 0) && ((w->wire_value_g & Mask[f_idx]) != Unknown[f_idx]) && ((w->wire_value_f & Mask[f_idx]) != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-              //cout << w->name << " " << vec << endl;
-              if(tc.second.find(w->name) == tc.second.end()) {
-                simulated_fault_list[f_idx]->tpsf++;
-              }
-              else 
+              if(!tr_unexamined1[vec].empty())
               {
-                simulated_fault_list[f_idx]->tfsf++;
-                simulated_fault_list[f_idx]->tfsp--;
-              
-              }
-              //else f->tpsf ++;
-              //cout << simulated_fault_list[f_idx]->fault_no << " " << simulated_fault_list[f_idx]->node->name << ":" << (simulated_fault_list[f_idx]->io?"O":"I")<< " "  << sort_wlist[simulated_fault_list[f_idx]->to_swlist]->name << "SA" << simulated_fault_list[f_idx]->fault_type << " tfsf: " << simulated_fault_list[f_idx]->tfsf << " tpsf: " << simulated_fault_list[f_idx]->tpsf  << endl;
-
-              //cout <<  << endl;
+                if((tr_unexamined1[vec].find(w->name) != tr_unexamined1[vec].end())) { 
+                  simulated_fault_list[f_idx]->tfsf++;
+                  simulated_fault_list[f_idx]->tfsp--;
+                }
+                else {simulated_fault_list[f_idx]->tpsf++;}
+                // no fault is supposed to occur
+              } else {simulated_fault_list[f_idx]->tpsf++;}
             }
             //cout << endl;
           }
