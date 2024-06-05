@@ -227,13 +227,15 @@ void ATPG::input(const string &infile) {
 
   file.close();
   create_structure();
-  // fprintf(stdout, "\n");
-  // fprintf(stdout, "#Circuit Summary:\n");
-  // fprintf(stdout, "#---------------\n");
-  // fprintf(stdout, "#number of inputs = %d\n", int(cktin.size()));
-  // fprintf(stdout, "#number of outputs = %d\n", int(cktout.size()));
-  // fprintf(stdout, "#number of gates = %d\n", ncktnode);
-  // fprintf(stdout, "#number of wires = %d\n", ncktwire);
+  if(diag_only){
+    fprintf(stdout, "\n");
+    fprintf(stdout, "#Circuit Summary:\n");
+    fprintf(stdout, "#---------------\n");
+    fprintf(stdout, "#number of inputs = %d\n", int(cktin.size()));
+    fprintf(stdout, "#number of outputs = %d\n", int(cktout.size()));
+    fprintf(stdout, "#number of gates = %d\n", ncktnode);
+    fprintf(stdout, "#number of wires = %d\n", ncktwire);
+  }
   if (debug) display_circuit();
   //display_circuit();
 }/* end of input */
@@ -409,4 +411,89 @@ void ATPG::read_vectors(const string &vetFile) {
     }
   }
   file.close(); // close the file
+
+  if(diag_only){
+    fprintf(stdout, "#number of vectors = %d\n", vectors.size());
+  }
+}
+
+void ATPG::read_faillog(const string &faillog) {  
+  string t, vec;
+  int i, k = 0;
+  int swlist_size = sort_wlist.size();
+  int fault_num;
+  wptr w;
+  nptr n;
+  trptr_s f;
+  bool flag= 0;
+  ifstream file(faillog, std::ifstream::in); // open the input vectors' file
+  if (!file) { // if the ifstream obj does not exist, fail to open the file
+    fprintf(stderr, "File %s could not be opened\n", faillog.c_str());
+    exit(EXIT_FAILURE);
+  }
+  while (!file.eof() && !file.bad()) {
+    getline(file, t); // get a line from the file
+    if(t.size() == 0) break;
+    vec.clear();
+    f = move(trptr_s(new (nothrow) TEST_RESULT));
+    if (f == nullptr)
+      error("No more room!");
+    i = 0;
+    f->index = k++;
+    while(t[i] != ' '){
+      i++;
+    }
+    i++;
+    while(t[i] != ' '){
+      vec += t[i];
+      i++;
+    }
+    i++;
+    
+    for (int j = swlist_size - 1; j >=0 ; j--){
+      //cout << sort_wlist[j]->name << endl;
+      if (sort_wlist[j]->name == vec)
+      {
+        f->node = sort_wlist[j]->inode.front();
+        break;
+      }
+    }
+    vec.clear();
+    while(t[i] != ' '){
+      i++;
+    }
+    i++;
+    f->expected = t[i] == 'L' ? 0:1;
+    i+= 3;
+    while(t[i] != ' '){
+      i++;
+    }
+    i++;
+    //cout << t[i] <<endl;
+    f->observed = t[i] == 'L' ? 0:1;
+    while(t[i] != '\''){
+      i++;
+    }
+    i++;
+    while(t[i] != '\''){
+      vec += t[i];
+      i++;
+    }
+    f->vec = vec;
+    tr_unexamined1[vec].insert(f->node->owire.front()->name);
+    tr_unexamined.push_front(f.get()); 
+    tr.push_front(move(f)); 
+    
+  }
+  for ( auto t : tr_unexamined1){
+    cout << t.first << endl;
+    for (auto kk : t.second){
+      cout << kk << endl;
+    }
+  }
+  file.close(); // close the file
+  
+  if(diag_only){
+    fprintf(stdout, "#number of failing outputs = %d\n", tr_unexamined1.size()); /// test
+  }
 }

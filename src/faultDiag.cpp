@@ -120,10 +120,9 @@ void ATPG::diag(){
         f->detected_time++;
         if(tc.second.find(sort_wlist[f->to_swlist]->name) == tc.second.end()) f->tfsf++;
         else f->tpsf++;
-				if (f->detected_time >= this->detected_num)
-				{
-					f->detect = TRUE;
-				}
+        if (f->detected_time >= this->detected_num){
+            f->detect = TRUE;
+        }
       } else {
         /* if f is an gate output fault */
         if (f->io == GO) {
@@ -551,103 +550,4 @@ void ATPG::set_examined_faults(const string &wire, const string &gate, const str
     // cout << f->fault_no << " "  << f->node->name << ":" << (f->io?"O":"I") <<" "  << (f->io?9:(f->index)) <<" "  << "SA" << f->fault_type << endl;
   }
   // fprintf(stdout, "#number of equivalent faults = %d\n", fault_num);
-}
-
-void ATPG::read_faillog(const string &faillog) {  
-  
-  string t, vec;
-  int i, k = 0;
-  int swlist_size = sort_wlist.size();
-  int fault_num;
-  wptr w;
-  nptr n;
-  trptr_s f;
-  bool flag= 0;
-  ifstream file(faillog, std::ifstream::in); // open the input vectors' file
-  if (!file) { // if the ifstream obj does not exist, fail to open the file
-    fprintf(stderr, "File %s could not be opened\n", faillog.c_str());
-    exit(EXIT_FAILURE);
-  }
-    while (!file.eof() && !file.bad()) {
-    getline(file, t); // get a line from the file
-    if(t.size() == 0) break;
-    vec.clear();
-    f = move(trptr_s(new (nothrow) TEST_RESULT));
-    if (f == nullptr)
-      error("No more room!");
-    i = 0;
-    f->index = k++;
-    while(t[i] != ' ')
-    {
-      i++;
-    }
-    i++;
-    while(t[i] != ' ')
-    {
-      vec += t[i];
-      i++;
-    }
-    i++;
-    
-    for (int j = swlist_size - 1; j >=0 ; j--)
-    {
-      //cout << sort_wlist[j]->name << endl;
-      if (sort_wlist[j]->name == vec)
-      {
-        f->node = sort_wlist[j]->inode.front();
-        break;
-      }
-    }
-    vec.clear();
-    while(t[i] != ' ')
-    {
-      i++;
-    }
-    i++;
-    f->expected = t[i] == 'L' ? 0:1;
-    i+= 3;
-    while(t[i] != ' ')
-    {
-      i++;
-    }
-    i++;
-    //cout << t[i] <<endl;
-    f->observed = t[i] == 'L' ? 0:1;
-    while(t[i] != '\'')
-    {
-      i++;
-    }
-    i++;
-    while(t[i] != '\'')
-    {
-      vec += t[i];
-      i++;
-    }
-    f->vec = vec;
-    tr_unexamined1[vec].insert(f->node->owire.front()->name);
-    tr_unexamined.push_front(f.get()); 
-    tr.push_front(move(f)); 
-    
-    }
-    for ( auto t : tr_unexamined1)
-    {
-      cout << t.first << endl;
-      for (auto kk : t.second)
-      {
-        cout << kk << endl;
-      }
-    }
-    /*
-    for (trptr f : tr_unexamined) {
-      cout << "index: "<< f->index << endl;
-      cout <<"node name: " << f->node->name <<", wire name: " << f->node->owire.front()->name << endl;
-      cout <<"expected value: "<< f->expected <<", observed value: " << f->observed <<", vector value: "<< f->vec  << endl;
-      //cout << f->vec << endl;
-      cout << endl;
-      // cout << f->fault_no << " "  << f->node->name << ":" << (f->io?"O":"I") <<" "  << (f->io?9:(f->index)) <<" "  << "SA" << f->fault_type << endl;
-    }
-    */
-    
-  file.close(); // close the file
-  
 }
