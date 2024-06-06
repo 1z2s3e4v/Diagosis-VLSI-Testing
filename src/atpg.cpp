@@ -47,7 +47,7 @@ void ATPG::test() {
     /* transition fault sim mode */
 
     if (failLog_only) {
-        fd_fault_simulation(total_detect_num);
+        genFailLog_fault_simulation(total_detect_num);
         in_vector_no += vectors.size();
         //display_fd_undetect();
         return;

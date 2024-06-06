@@ -68,17 +68,17 @@ void ATPG::ranking(){
 }
 
 /* fault simulate a set of test vectors */
-void ATPG::fd_fault_simulation(int &total_detect_num) {
+void ATPG::genFailLog_fault_simulation(int &total_detect_num) {
   int i;
   int current_detect_num = 0;
   
   /* for every vector */
   for (i = vectors.size() - 1; i >= 0; i--) {
     // cout << "fault_sim a vector(" << vectors[i] << "):\n";
-    fd_fault_sim_a_vector(vectors[i], current_detect_num, i); // print fail log
+    genFailLog_fault_sim_a_vector(vectors[i], current_detect_num, i); // print fail log
     total_detect_num += current_detect_num;
   }
-}// fd_fault_simulation
+}// genFailLog_fault_simulation
 /* diagnosis */
 void ATPG::diag(){
   string  wire_name;
@@ -140,174 +140,174 @@ void ATPG::diag(){
       }
     }
     for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
-    f = *pos;
-    //cout << vec << " fault no: " << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << endl;
-    
-    if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
-    /* consider only active (aka. excited) fault
-     * (sa1 with correct output of 0 or sa0 with correct output of 1) */
-    if (f->fault_type != sort_wlist[f->to_swlist]->value) {
-      /* if f is a primary output or is directly connected to an primary output
-       * the fault is detected */
-      if ((f->node->type == OUTPUT) ||
-          (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
-        
-        if(!tr_unexamined1[vec].empty())
-        {
-          if((tr_unexamined1[vec].find(sort_wlist[f->to_swlist]->name) != tr_unexamined1[vec].end())) { 
-            f->tfsf++;
-            f->tfsp--;
-          }
-          else {f->tpsf++;}
-          // no fault is supposed to occur
-        } else {f->tpsf++;}
+      f = *pos;
+      //cout << vec << " fault no: " << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << endl;
       
-      } else {
-        /* if f is an gate output fault */
-        if (f->io == GO) {
-          /* if this wire is not yet marked as faulty, mark the wire as faulty
-           * and insert the corresponding wire to the list of faulty wires. */
-          if (!(sort_wlist[f->to_swlist]->is_faulty())) {
-            sort_wlist[f->to_swlist]->set_faulty();
-            wlist_faulty.push_front(sort_wlist[f->to_swlist]);
-          }
-
-          /* add the fault to the simulated fault list and inject the fault */
-          simulated_fault_list[num_of_fault] = f;
-          inject_fault_value(sort_wlist[f->to_swlist], num_of_fault, f->fault_type);
-
-          /* mark the wire as having a fault injected
-           * and schedule the outputs of this gate */
-          sort_wlist[f->to_swlist]->set_fault_injected();
-          for (auto pos_n : sort_wlist[f->to_swlist]->onode) {
-            pos_n->owire.front()->set_scheduled();
-          }
-
-          /* increment the number of simulated faults in this packet */
-          num_of_fault++;
-          /* start_wire_index keeps track of the smallest level of fault in this packet.
-           * this saves simulation time.  */
-          start_wire_index = min(start_wire_index, f->to_swlist);
-        }  // if gate output fault
-
-        /* the fault is a gate input fault */
-        else {
-          /* if the fault is propagated, set faulty_wire equal to the faulty wire.
-           * faulty_wire is the gate output of f.  */
-          //cout << "123 " << endl;
-          faulty_wire = get_faulty_wire(f, fault_type);
-          if (faulty_wire != nullptr) {
-            /* if the faulty_wire is a primary output, it is detected */
-            if (faulty_wire->is_output()) {
-              if(!tr_unexamined1[vec].empty())
-              {
-                if((tr_unexamined1[vec].find(sort_wlist[f->to_swlist]->name) != tr_unexamined1[vec].end())) { 
-                  f->tfsf++;
-                  f->tfsp--;
-                }
-                else {f->tpsf++;}
-                // no fault is supposed to occur
-              } else {f->tpsf++;}
-            } else {
-              /* if faulty_wire is not already marked as faulty, mark it as faulty
-               * and add the wire to the list of faulty wires. */
-              if (!(faulty_wire->is_faulty())) {
-                faulty_wire->set_faulty();
-                wlist_faulty.push_front(faulty_wire);
-              }
-
-              /* add the fault to the simulated list and inject it */
-              simulated_fault_list[num_of_fault] = f;
-              inject_fault_value(faulty_wire, num_of_fault, fault_type);
-
-              /* mark the faulty_wire as having a fault injected
-               *  and schedule the outputs of this gate */
-              faulty_wire->set_fault_injected();
-              for (auto pos_n : faulty_wire->onode) {
-                pos_n->owire.front()->set_scheduled();
-              }
-
-              num_of_fault++;
-              start_wire_index = min(start_wire_index, f->to_swlist);
-            }
-          }
-        }
-      } // if  gate input fault
-    } // if fault is active
-    else f->tpsp++;
-    /*
-     * fault simulation of a packet
-     */
-
-    /* if this packet is full (16 faults)
-     * or there is no more undetected faults remaining (pos points to the final element of flist_undetect),
-     * do the fault simulation */
-    if ((num_of_fault == num_of_faults_in_parallel) || (next(pos, 1) == flist_undetect.cend())) {
-
-      /* starting with start_wire_index, evaulate all scheduled wires
-       * start_wire_index helps to save time. */
-      //cout << nckt << endl;
-      for (i = start_wire_index; i < nckt; i++) {
-        
-        if (sort_wlist[i]->is_scheduled()) {
-          //cout << sort_wlist[i]->name << sort_wlist[i]->inode.front()->name << endl;
-          sort_wlist[i]->remove_scheduled();
-          fault_sim_evaluate(sort_wlist[i]);
-        }
-      } /* event evaluations end here */
-
-      /* pop out all faulty wires from the wlist_faulty
-        * if PO's value is different from good PO's value, and it is not unknown
-        * then the fault is detected.
-        *
-        * IMPORTANT! remember to reset the wires' faulty values back to fault-free values.
-      */
-      while (!wlist_faulty.empty()) {
-        w = wlist_faulty.front();
-        wlist_faulty.pop_front();
-        w->remove_faulty();
-        w->remove_fault_injected();
-        w->set_fault_free();
-        /*TODO*/
-        /*
-         * After simulation is done,if wire is_output(), we should compare good value(wire_value_g) and faulty value(wire_value_f). 
-         * If these two values are different and they are not unknown, then the fault is detected.  We should update the simulated_fault_list.  Set detect to true if they are different.
-         * Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
-         * After that, don't forget to reset faulty values (wire_value_f) to their fault-free values (wire_value_g).
-         */
-        // 1.1. if wire is_output()
-        if(w->is_output()){
-          //cout << w->name << endl;
+      if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
+      /* consider only active (aka. excited) fault
+       * (sa1 with correct output of 0 or sa0 with correct output of 1) */
+      if (f->fault_type != sort_wlist[f->to_swlist]->value) {
+        /* if f is a primary output or is directly connected to an primary output
+         * the fault is detected */
+        if ((f->node->type == OUTPUT) ||
+            (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
           
-            
-          // 1.2. we should compare good value(wire_value_g) and faulty value(wire_value_f)
-          int detected = w->wire_value_g ^ w->wire_value_f;
-          for(int f_idx=0; f_idx<num_of_fault; ++f_idx){ // for every undetected fault
-
-            // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
-            // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-            if(((Mask[f_idx] & detected) != 0) && ((w->wire_value_g & Mask[f_idx]) != Unknown[f_idx]) && ((w->wire_value_f & Mask[f_idx]) != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-              if(!tr_unexamined1[vec].empty())
-              {
-                if((tr_unexamined1[vec].find(w->name) != tr_unexamined1[vec].end())) { 
-                  simulated_fault_list[f_idx]->tfsf++;
-                  simulated_fault_list[f_idx]->tfsp--;
-                }
-                else {simulated_fault_list[f_idx]->tpsf++;}
-                // no fault is supposed to occur
-              } else {simulated_fault_list[f_idx]->tpsf++;}
+          if(!tr_unexamined1[vec].empty())
+          {
+            if((tr_unexamined1[vec].find(sort_wlist[f->to_swlist]->name) != tr_unexamined1[vec].end())) { 
+              f->tfsf++;
+              f->tfsp--;
             }
-            //cout << endl;
+            else {f->tpsf++;}
+            // no fault is supposed to occur
+          } else {f->tpsf++;}
+        
+        } else {
+          /* if f is an gate output fault */
+          if (f->io == GO) {
+            /* if this wire is not yet marked as faulty, mark the wire as faulty
+             * and insert the corresponding wire to the list of faulty wires. */
+            if (!(sort_wlist[f->to_swlist]->is_faulty())) {
+              sort_wlist[f->to_swlist]->set_faulty();
+              wlist_faulty.push_front(sort_wlist[f->to_swlist]);
+            }
+  
+            /* add the fault to the simulated fault list and inject the fault */
+            simulated_fault_list[num_of_fault] = f;
+            inject_fault_value(sort_wlist[f->to_swlist], num_of_fault, f->fault_type);
+  
+            /* mark the wire as having a fault injected
+             * and schedule the outputs of this gate */
+            sort_wlist[f->to_swlist]->set_fault_injected();
+            for (auto pos_n : sort_wlist[f->to_swlist]->onode) {
+              pos_n->owire.front()->set_scheduled();
+            }
+  
+            /* increment the number of simulated faults in this packet */
+            num_of_fault++;
+            /* start_wire_index keeps track of the smallest level of fault in this packet.
+             * this saves simulation time.  */
+            start_wire_index = min(start_wire_index, f->to_swlist);
+          }  // if gate output fault
+  
+          /* the fault is a gate input fault */
+          else {
+            /* if the fault is propagated, set faulty_wire equal to the faulty wire.
+             * faulty_wire is the gate output of f.  */
+            //cout << "123 " << endl;
+            faulty_wire = get_faulty_wire(f, fault_type);
+            if (faulty_wire != nullptr) {
+              /* if the faulty_wire is a primary output, it is detected */
+              if (faulty_wire->is_output()) {
+                if(!tr_unexamined1[vec].empty())
+                {
+                  if((tr_unexamined1[vec].find(sort_wlist[f->to_swlist]->name) != tr_unexamined1[vec].end())) { 
+                    f->tfsf++;
+                    f->tfsp--;
+                  }
+                  else {f->tpsf++;}
+                  // no fault is supposed to occur
+                } else {f->tpsf++;}
+              } else {
+                /* if faulty_wire is not already marked as faulty, mark it as faulty
+                 * and add the wire to the list of faulty wires. */
+                if (!(faulty_wire->is_faulty())) {
+                  faulty_wire->set_faulty();
+                  wlist_faulty.push_front(faulty_wire);
+                }
+  
+                /* add the fault to the simulated list and inject it */
+                simulated_fault_list[num_of_fault] = f;
+                inject_fault_value(faulty_wire, num_of_fault, fault_type);
+  
+                /* mark the faulty_wire as having a fault injected
+                 *  and schedule the outputs of this gate */
+                faulty_wire->set_fault_injected();
+                for (auto pos_n : faulty_wire->onode) {
+                  pos_n->owire.front()->set_scheduled();
+                }
+  
+                num_of_fault++;
+                start_wire_index = min(start_wire_index, f->to_swlist);
+              }
+            }
           }
-        }
-        // 4. After that, don't forget to reset faulty values (wire_value_f) to their fault-free values (wire_value_g)
-        w->wire_value_f = w->wire_value_g;
-        /*end of TODO*/
-      } // pop out all faulty wires
-      num_of_fault = 0;  // reset the counter of faults in a packet
-      start_wire_index = 10000;  //reset this index to a very large value.
-    } // end fault sim of a packet
-  }
+        } // if  gate input fault
+      } // if fault is active
+      else f->tpsp++;
+      /*
+       * fault simulation of a packet
+       */
+  
+      /* if this packet is full (16 faults)
+       * or there is no more undetected faults remaining (pos points to the final element of flist_undetect),
+       * do the fault simulation */
+      if ((num_of_fault == num_of_faults_in_parallel) || (next(pos, 1) == flist_undetect.cend())) {
+  
+        /* starting with start_wire_index, evaulate all scheduled wires
+         * start_wire_index helps to save time. */
+        //cout << nckt << endl;
+        for (i = start_wire_index; i < nckt; i++) {
+          
+          if (sort_wlist[i]->is_scheduled()) {
+            //cout << sort_wlist[i]->name << sort_wlist[i]->inode.front()->name << endl;
+            sort_wlist[i]->remove_scheduled();
+            fault_sim_evaluate(sort_wlist[i]);
+          }
+        } /* event evaluations end here */
+  
+        /* pop out all faulty wires from the wlist_faulty
+          * if PO's value is different from good PO's value, and it is not unknown
+          * then the fault is detected.
+          *
+          * IMPORTANT! remember to reset the wires' faulty values back to fault-free values.
+        */
+        while (!wlist_faulty.empty()) {
+          w = wlist_faulty.front();
+          wlist_faulty.pop_front();
+          w->remove_faulty();
+          w->remove_fault_injected();
+          w->set_fault_free();
+          /*TODO*/
+          /*
+           * After simulation is done,if wire is_output(), we should compare good value(wire_value_g) and faulty value(wire_value_f). 
+           * If these two values are different and they are not unknown, then the fault is detected.  We should update the simulated_fault_list.  Set detect to true if they are different.
+           * Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
+           * After that, don't forget to reset faulty values (wire_value_f) to their fault-free values (wire_value_g).
+           */
+          // 1.1. if wire is_output()
+          if(w->is_output()){
+            //cout << w->name << endl;
+            
+              
+            // 1.2. we should compare good value(wire_value_g) and faulty value(wire_value_f)
+            int detected = w->wire_value_g ^ w->wire_value_f;
+            for(int f_idx=0; f_idx<num_of_fault; ++f_idx){ // for every undetected fault
+  
+              // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
+              // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
+              if(((Mask[f_idx] & detected) != 0) && ((w->wire_value_g & Mask[f_idx]) != Unknown[f_idx]) && ((w->wire_value_f & Mask[f_idx]) != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
+                if(!tr_unexamined1[vec].empty())
+                {
+                  if((tr_unexamined1[vec].find(w->name) != tr_unexamined1[vec].end())) { 
+                    simulated_fault_list[f_idx]->tfsf++;
+                    simulated_fault_list[f_idx]->tfsp--;
+                  }
+                  else {simulated_fault_list[f_idx]->tpsf++;}
+                  // no fault is supposed to occur
+                } else {simulated_fault_list[f_idx]->tpsf++;}
+              }
+              //cout << endl;
+            }
+          }
+          // 4. After that, don't forget to reset faulty values (wire_value_f) to their fault-free values (wire_value_g)
+          w->wire_value_f = w->wire_value_g;
+          /*end of TODO*/
+        } // pop out all faulty wires
+        num_of_fault = 0;  // reset the counter of faults in a packet
+        start_wire_index = 10000;  //reset this index to a very large value.
+      } // end fault sim of a packet
+    }
   
   }
   flist_undetect.remove_if(
@@ -324,7 +324,7 @@ void ATPG::diag(){
       });
 }
 /* fault simulate a single test vector */
-void ATPG::fd_fault_sim_a_vector(const string &vec, int &num_of_current_detect, int &vec_index) {
+void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_detect, int &vec_index) {
   wptr w, faulty_wire;
   /* array of 16 fptrs, which points to the 16 faults in a simulation packet  */
   fptr simulated_fault_list[num_of_faults_in_parallel];

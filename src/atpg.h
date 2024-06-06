@@ -105,9 +105,9 @@ class ATPG {
   bool get_diag_only() { return diag_only; }
 
   /* faultDiag.cpp  */
-  void fd_generate_fault_list();
-  void fd_fault_simulation(int &);
-  void fd_fault_sim_a_vector(const string &, int &, int &);
+  void genFailLog_generate_fault_list();
+  void genFailLog_fault_simulation(int &);
+  void genFailLog_fault_sim_a_vector(const string &, int &, int &);
   void set_examined_faults(const string &,const string &,const string &,const string &);
   void diag();
   void ranking();
