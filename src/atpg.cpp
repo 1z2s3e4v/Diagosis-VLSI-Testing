@@ -69,7 +69,7 @@ void ATPG::test() {
 
             if(max > f->score) {max= f->score; group++;}
             if(perfect && f->score != 100) break;
-            printf("No.%d %s %s %s SA%d, GroudID: %d, TFSF: %d, TPSF: %d, TFSP: %d, TPSP: %d Score: %.2f [ equivalent faults: ", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
+            printf("No.%d %s %s %s SA%d, groupID=%d, TFSF=%d, TPSF=%d, TFSP=%d, TPSP=%d, score=%.2f [ equivalent faults: ", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
                                              (f->io?"GO":"GI"), f->fault_type, group, f->tfsf, f->tpsf, f->tfsp, f->tpsp, f->score, f->eqv_fault_num);
             // [ equivalent faults: 7GAT dummy_gate5 GO SA0, 11GAT g3 GI SA0, ]     
             // for(fptr eqv_f : f->eqv_faults){
