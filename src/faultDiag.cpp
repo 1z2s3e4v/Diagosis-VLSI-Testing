@@ -36,6 +36,21 @@ void ATPG::print_circuit_summary(){
     fprintf(stdout, "\n");
 }
 
+void ATPG::eliminate_faults(){ // Three-step fault-elimination (ch10.3 p.3)
+    structural_backtrace(); // Step 1. Structural Backtracing
+    parity_check(); // Step 2. Parity Check
+    excitation_condition_check(); // Step 3. Excitation Condition Check
+}
+void ATPG::structural_backtrace(){ // TODO: Complete this function
+
+}
+void ATPG::parity_check(){ // TODO: Complete this function
+
+}
+void ATPG::excitation_condition_check(){ // TODO: Complete this function
+
+}
+
 void ATPG::ranking(){
     int flist_size = ranks.size();
     int i, j;

@@ -61,8 +61,9 @@ void ATPG::test() {
         //display_undetect();
         print_circuit_summary();
 
-        diag();
-        ranking();
+        eliminate_faults(); // TODO: Remove impossible candidate faults based on structural or logic value (ch10.3 p.3)
+        diag(); // Score the faults for finding faults for the failLog
+        ranking(); // Rank the 
         
         for (fptr f: ranks) {
             if (f->score == 100) perfect = true;

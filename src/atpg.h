@@ -112,6 +112,10 @@ class ATPG {
   void diag();
   void ranking();
   void print_circuit_summary();
+  void eliminate_faults();
+  void structural_backtrace();
+  void parity_check();
+  void excitation_condition_check();
   
   /* defined in atpg.cpp */
   void test();
