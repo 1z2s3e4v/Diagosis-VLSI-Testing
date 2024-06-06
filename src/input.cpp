@@ -476,7 +476,7 @@ void ATPG::read_faillog(const string &faillog) {
     }
     f->vec = vec;
     tr_unexamined1[vec].insert(f->node->owire.front()->name);
-    //tr_unexamined.push_front(f.get()); 
+    //tr_unexamined.push_front(f.get());
     tr.push_front(move(f)); 
     test_fails++;
   }

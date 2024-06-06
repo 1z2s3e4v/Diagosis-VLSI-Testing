@@ -198,6 +198,8 @@ class ATPG {
 
   char itoc(const int &);
 
+  string f2s(fptr);
+
   /* declared in sim.cpp */
   void sim();
   void evaluate(nptr);
@@ -372,7 +374,7 @@ class ATPG {
     int tfsp;
     int tpsp;
     double score;
-    vector<fptr> eqv_faults; /* indice of euivilent faults */
+    unordered_set<string> eqv_faults; // save as string (ex: "11GAT g3 GI SA0" or "7GAT dummy_gate5 GO SA0")
   }; // class FAULT
 
 

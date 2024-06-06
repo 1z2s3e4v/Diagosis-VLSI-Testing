@@ -12,12 +12,20 @@
 #include "atpg.h"
 #include <unordered_map>
 
+string ATPG::f2s(fptr f){
+  char buffer[255];
+  sprintf(buffer, "%s %s %s SA%d", sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), (f->io?"GO":"GI"), f->fault_type);
+  string s(buffer);
+  return s;
+}
+
 void ATPG::generate_fault_list() {
   int fault_num;
   wptr w;
   nptr n;
   fptr_s f;
   unordered_map<wptr, int> num_of_eqv_sa0, num_of_eqv_sa1;
+  unordered_map<wptr, unordered_set<string> > eqv_sa0s, eqv_sa1s;
   /* walk through every wire in the circuit*/
   for (auto pos : sort_wlist) {
     w = pos;
@@ -37,17 +45,20 @@ void ATPG::generate_fault_list() {
     //   So that, we can calculate uncollapsed fault coverage.
 
     f->eqv_fault_num = 1;    // GO SA0 fault itself
+    f->eqv_faults.clear(); f->eqv_faults.insert(f2s(f.get()));
     switch (n->type) {
       case AND:
       case BUF:
         for (wptr wptr_ele: w->inode.front()->iwire) {
           f->eqv_fault_num += num_of_eqv_sa0[wptr_ele];   // count how many equivalent faults in gate input
+          f->eqv_faults.insert(eqv_sa0s[wptr_ele].begin(), eqv_sa0s[wptr_ele].end());
         }
         break;
       case NOR:
       case NOT:
         for (wptr wptr_ele: w->inode.front()->iwire) {
           f->eqv_fault_num += num_of_eqv_sa1[wptr_ele];
+          f->eqv_faults.insert(eqv_sa1s[wptr_ele].begin(), eqv_sa1s[wptr_ele].end());
         }
         break;
       case INPUT:
@@ -69,6 +80,7 @@ void ATPG::generate_fault_list() {
       flist.push_front(move(f));  // push into the fault list
     } else {
       num_of_eqv_sa0[w] = f->eqv_fault_num;
+      eqv_sa0s[w] = f->eqv_faults;
     }
 
     /* for each gate, create a gate output stuck-at one (SA1) fault */
@@ -76,11 +88,12 @@ void ATPG::generate_fault_list() {
 
     if (f == nullptr) error("No more room!");
     f->tfsp = test_fails;
-    f->eqv_fault_num = 1;
     f->node = n;
     f->io = GO;
     f->fault_type = STUCK1;
     f->to_swlist = w->wlist_index;
+    f->eqv_fault_num = 1;
+    f->eqv_faults.clear(); f->eqv_faults.insert(f2s(f.get()));
     /* for OR NAND NOT BUF, their GI fault is equivalent to GO SA1 fault */
     switch (n->type) {
       case OR:
@@ -89,6 +102,7 @@ void ATPG::generate_fault_list() {
           if (num_of_eqv_sa1.find(wptr_ele) == num_of_eqv_sa1.end())
             cerr << wptr_ele << " is not in hashmap." << endl;
           f->eqv_fault_num += num_of_eqv_sa1[wptr_ele];
+          f->eqv_faults.insert(eqv_sa1s[wptr_ele].begin(), eqv_sa1s[wptr_ele].end());
         }
         break;
       case NAND:
@@ -97,6 +111,7 @@ void ATPG::generate_fault_list() {
           if (num_of_eqv_sa0.find(wptr_ele) == num_of_eqv_sa0.end())
             cerr << wptr_ele << " is not in hashmap." << endl;
           f->eqv_fault_num += num_of_eqv_sa0[wptr_ele];
+          f->eqv_faults.insert(eqv_sa0s[wptr_ele].begin(), eqv_sa0s[wptr_ele].end());
         }
         break;
       case INPUT:
@@ -113,11 +128,16 @@ void ATPG::generate_fault_list() {
       flist.push_front(move(f));  // push into the fault list
     } else {
       num_of_eqv_sa1[w] = f->eqv_fault_num;
+      eqv_sa1s[w] = f->eqv_faults;
     }
 
     /*if w has multiple fanout branches */
     if (w->onode.size() > 1) {
       num_of_eqv_sa0[w] = num_of_eqv_sa1[w] = 1;
+      char buffer0[255]; sprintf(buffer0, "%s %s %s SA%d", w->name.c_str(), w->onode.back()->name.c_str(), "GI", STUCK0); string s0(buffer0); 
+      eqv_sa0s[w].insert(s0);
+      char buffer1[255]; sprintf(buffer1, "%s %s %s SA%d", w->name.c_str(), w->onode.back()->name.c_str(), "GI", STUCK1); string s1(buffer1); 
+      eqv_sa1s[w].insert(s1);
       for (nptr nptr_ele: w->onode) {
         /* create SA0 for OR NOR EQV XOR gate inputs  */
         switch (nptr_ele->type) {
@@ -134,6 +154,7 @@ void ATPG::generate_fault_list() {
             f->fault_type = STUCK0;
             f->to_swlist = w->wlist_index;
             f->eqv_fault_num = 1;
+            f->eqv_faults.clear(); f->eqv_faults.insert(f2s(f.get()));
             /* f->index is the index number of gate input,
                which GI fault is associated with*/
             for (int k = 0; k < nptr_ele->iwire.size(); k++) {
@@ -159,6 +180,7 @@ void ATPG::generate_fault_list() {
             f->fault_type = STUCK1;
             f->to_swlist = w->wlist_index;
             f->eqv_fault_num = 1;
+            f->eqv_faults.clear(); f->eqv_faults.insert(f2s(f.get()));
             for (int k = 0; k < nptr_ele->iwire.size(); k++) {
               if (nptr_ele->iwire[k] == w) f->index = k;
             }
@@ -175,6 +197,7 @@ void ATPG::generate_fault_list() {
   /*walk through all faults, assign fault_no one by one  */
   fault_num = 0;
   for (fptr f: flist_undetect) {
+    f->eqv_faults.erase(f2s(f)); // remove it self
     f->fault_no = fault_num;
     fault_num++;
     //cout << f->fault_no << f->node->name << ":" << (f->io?"O":"I") << (f->io?9:(f->index)) << "SA" << f->fault_type << endl;
