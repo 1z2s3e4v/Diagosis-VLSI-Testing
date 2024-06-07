@@ -128,6 +128,10 @@ void ATPG::diag(){
           break;
       }
     }
+    for(int no_of_faults = 1; no_of_faults <= 1 ; no_of_faults++)
+    {
+
+    }
     for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
       f = *pos;
       //cout << vec << " fault no: " << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << endl;
@@ -396,14 +400,11 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
           sort_wlist[f->to_swlist]->set_faulty();
           wlist_faulty.push_front(sort_wlist[f->to_swlist]);
         }
-        /* add the fault to the simulated fault list and inject the fault */
-        simulated_fault_list[num_of_fault] = f;
         inject_fault_value(sort_wlist[f->to_swlist], num_of_fault, f->fault_type);
         /* mark the wire as having a fault injected
          * and schedule the outputs of this gate */
         sort_wlist[f->to_swlist]->set_fault_injected();
         /* increment the number of simulated faults in this packet */
-        num_of_fault++;
         /* start_wire_index keeps track of the smallest level of fault in this packet.
          * this saves simulation time.  */
         start_wire_index = min(start_wire_index, f->to_swlist);
@@ -418,7 +419,6 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
           }
 
           /* add the fault to the simulated fault list and inject the fault */
-          simulated_fault_list[num_of_fault] = f;
           inject_fault_value(sort_wlist[f->to_swlist], num_of_fault, f->fault_type);
 
           /* mark the wire as having a fault injected
@@ -429,7 +429,6 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
           }
 
           /* increment the number of simulated faults in this packet */
-          num_of_fault++;
           /* start_wire_index keeps track of the smallest level of fault in this packet.
            * this saves simulation time.  */
           start_wire_index = min(start_wire_index, f->to_swlist);
@@ -454,19 +453,18 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
                 faulty_wire->set_faulty();
                 wlist_faulty.push_front(faulty_wire);
               }
-
-              /* add the fault to the simulated list and inject it */
-              simulated_fault_list[num_of_fault] = f;
-              inject_fault_value(faulty_wire, num_of_fault, fault_type);
-
-              /* mark the faulty_wire as having a fault injected
-               *  and schedule the outputs of this gate */
-              faulty_wire->set_fault_injected();
+              if(!sort_wlist[f->to_swlist]->is_fault_injected())
+              {
+                /* add the fault to the simulated list and inject it */
+                inject_fault_value(faulty_wire, num_of_fault, fault_type);
+                /* mark the faulty_wire as having a fault injected
+                *  and schedule the outputs of this gate */
+                faulty_wire->set_fault_injected();
+              }
               for (auto pos_n : faulty_wire->onode) {
                 pos_n->owire.front()->set_scheduled();
               }
 
-              num_of_fault++;
               start_wire_index = min(start_wire_index, f->to_swlist);
             }
           }
@@ -476,10 +474,10 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
 
     
   } // end loop. for f = flist
-
   for (i = start_wire_index; i < nckt; i++) {
     if (sort_wlist[i]->is_scheduled()) {
       sort_wlist[i]->remove_scheduled();
+      //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f << endl;
       fault_sim_evaluate(sort_wlist[i]);
     }
   } /* event evaluations end here */
@@ -494,18 +492,13 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
     if(w->is_output()){
       // 1.2. we should compare good value(wire_value_g) and faulty value(wire_value_f)
       int detected = w->wire_value_g ^ w->wire_value_f;
-      for(int f_idx=0; f_idx<num_of_fault; ++f_idx){ // for every undetected fault
-        // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
-        // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-        if(((Mask[f_idx] & detected) != 0) && ((w->wire_value_g & Mask[f_idx]) != Unknown[f_idx]) && ((w->wire_value_f & Mask[f_idx]) != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-          failed_ws.insert(w);
-          //cout << w->wire_value_g  << " " << w->wire_value_f << endl;
-        }
+      // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
+      // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
+      if(((Mask[0] & detected) != 0) && ((w->wire_value_g & Mask[0]) != Unknown[0]) && ((w->wire_value_f & Mask[0]) != Unknown[0])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
+        failed_ws.insert(w);
+        
       }
     }
-    // 4. After that, don't forget to reset faulty values (wire_value_f) to their fault-free values (wire_value_g)
-    w->wire_value_f = w->wire_value_g;
-    /*end of TODO*/
   } // pop out all faulty wires
   num_of_fault = 0;  // reset the counter of faults in a packet
   start_wire_index = 10000;  //reset this index to a very large value.

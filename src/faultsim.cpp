@@ -317,8 +317,9 @@ void ATPG::fault_sim_evaluate(const wptr w) {
     }
 
     /* update wire_value_f */
+    if (!(w->is_faulty())) {
     w->wire_value_f = new_value;
-
+    }
     /* insert wire w into the faulty_wire list */
     if (!(w->is_faulty())) {
       w->set_faulty();
@@ -344,6 +345,7 @@ ATPG::wptr ATPG::get_faulty_wire(const fptr f, int &fault_type) {
   bool is_faulty;
 
   is_faulty = true;
+  //cout << f->node->name << " " << sort_wlist[f->to_swlist]->name << endl;
   nin = f->node->iwire.size();
   switch (f->node->type) {
 
