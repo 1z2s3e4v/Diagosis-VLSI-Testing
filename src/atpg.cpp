@@ -56,12 +56,12 @@ void ATPG::test() {
     if (diag_only) {
         int count = 1;
         int group = 0;
-        int max = 9999;
+        double max = 9999;
         bool perfect = false;
         //display_undetect();
         print_circuit_summary();
 
-        construct_po_map(); // TODO: Construct the map of po--faninNodes
+        //construct_po_map(); // TODO: Construct the map of po--faninNodes
         diag(); // Score the faults for finding faults for the failLog
         ranking(); // Rank the 
         
