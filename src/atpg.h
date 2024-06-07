@@ -379,7 +379,6 @@ class ATPG {
     int tpsp;
     double score;
     unordered_set<string> eqv_faults; // save as string (ex: "11GAT g3 GI SA0" or "7GAT dummy_gate5 GO SA0")
-    vector<bool> elim_mask; // Mask for eliminate (each pattern) 
   }; // class FAULT
 
 

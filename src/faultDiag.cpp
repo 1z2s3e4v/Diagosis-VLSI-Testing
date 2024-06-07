@@ -36,20 +36,9 @@ void ATPG::print_circuit_summary(){
     fprintf(stdout, "\n");
 }
 
-void ATPG::eliminate_faults(){ // Three-step fault-elimination (ch10.3 p.3)
-    structural_backtrace(); // Step 1. Structural Backtracing
-    parity_check(); // Step 2. Parity Check
-    excitation_condition_check(); // Step 3. Excitation Condition Check
+void ATPG::construct_po_map(){ // TODO: Step 0. 
+    
 }
-void ATPG::structural_backtrace(){ // TODO: Complete this function
-    // for each fault f: determine the f->elim_mask
-}
-void ATPG::parity_check(){ // TODO: Complete this function
-    // for each fault f: determine the f->elim_mask
-}
-void ATPG::excitation_condition_check(){ // TODO: Complete this function
-    // for each fault f: determine the f->elim_mask
-}  
 
 void ATPG::ranking(){
     int flist_size = ranks.size();
@@ -146,7 +135,9 @@ void ATPG::diag(){
       if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
       /* consider only active (aka. excited) fault
        * (sa1 with correct output of 0 or sa0 with correct output of 1) */
-      if (f->fault_type != sort_wlist[f->to_swlist]->value) {
+      // if (...) // TODO: Step 1. Structural Backtracing: Check whether pos is in all failing fanin cone
+      // if (...) // TODO: Step 2. Parity Check: Check whether vp=f
+      if ( f->fault_type != sort_wlist[f->to_swlist]->value) { // Step 3. Excitation Condition Check: Check the sa-v != n
         /* if f is a primary output or is directly connected to an primary output
          * the fault is detected */
         if ((f->node->type == OUTPUT) ||

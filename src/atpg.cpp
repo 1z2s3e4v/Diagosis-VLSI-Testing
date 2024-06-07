@@ -61,7 +61,7 @@ void ATPG::test() {
         //display_undetect();
         print_circuit_summary();
 
-        eliminate_faults(); // TODO: Remove impossible candidate faults based on structural or logic value (ch10.3 p.3)
+        construct_po_map(); // TODO: Construct the map of po--faninNodes
         diag(); // Score the faults for finding faults for the failLog
         ranking(); // Rank the 
         
