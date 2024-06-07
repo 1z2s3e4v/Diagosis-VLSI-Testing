@@ -42,14 +42,14 @@ void ATPG::eliminate_faults(){ // Three-step fault-elimination (ch10.3 p.3)
     excitation_condition_check(); // Step 3. Excitation Condition Check
 }
 void ATPG::structural_backtrace(){ // TODO: Complete this function
-
+    // for each fault f: determine the f->elim_mask
 }
 void ATPG::parity_check(){ // TODO: Complete this function
-
+    // for each fault f: determine the f->elim_mask
 }
 void ATPG::excitation_condition_check(){ // TODO: Complete this function
-
-}
+    // for each fault f: determine the f->elim_mask
+}  
 
 void ATPG::ranking(){
     int flist_size = ranks.size();
@@ -201,7 +201,7 @@ void ATPG::diag(){
               if (faulty_wire->is_output()) {
                 if(!tr_unexamined1[vec].empty())
                 {
-                  if((tr_unexamined1[vec].find(sort_wlist[f->to_swlist]->name) != tr_unexamined1[vec].end())) { 
+                  if((tr_unexamined1[vec].find(faulty_wire->name) != tr_unexamined1[vec].end())) { 
                     f->tfsf++;
                     f->tfsp--;
                   }
@@ -314,10 +314,13 @@ void ATPG::diag(){
       [&](const fptr f) {
         if (f->tfsf == 0) {
                       //cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << " tfsf: " << f->tfsf << " tpsf: " << f->tpsf << " score: " << f->score<< endl;
-
+        //   f->score = ((double) f->tfsf*10)/((double) (f->tfsf*10 + f->tfsp*10 + f->tpsf))*100;
+        // //   f->score = f->tfsf*10 - f->tpsf;
+        //   ranks.push_back(f);
           return true;
         } else {
           f->score = ((double) f->tfsf*10)/((double) (f->tfsf*10 + f->tfsp*10 + f->tpsf))*100;
+        //   f->score = f->tfsf*10 - f->tpsf;
           ranks.push_back(f);
           return false;
         }
