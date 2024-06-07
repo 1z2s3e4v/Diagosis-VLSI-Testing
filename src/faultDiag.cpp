@@ -63,7 +63,6 @@ void ATPG::genFailLog_fault_simulation(int &total_detect_num) {
   
   /* for every vector */
   for (i = vectors.size() - 1; i >= 0; i--) {
-    // cout << "fault_sim a vector(" << vectors[i] << "):\n";
     genFailLog_fault_sim_a_vector(vectors[i], current_detect_num, i); // print fail log
     total_detect_num += current_detect_num;
   }
@@ -389,7 +388,7 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
     if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
     /* consider only active (aka. excited) fault
      * (sa1 with correct output of 0 or sa0 with correct output of 1) */
-    if (f->fault_type != sort_wlist[f->to_swlist]->value) {
+    if (f->fault_type != sort_wlist[f->to_swlist]->value || 1) {
       /* if f is a primary output or is directly connected to an primary output
        * the fault is detected */
       if ((f->node->type == OUTPUT) ||
@@ -474,6 +473,7 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
 
     
   } // end loop. for f = flist
+
   for (i = start_wire_index; i < nckt; i++) {
     if (sort_wlist[i]->is_scheduled()) {
       sort_wlist[i]->remove_scheduled();
@@ -481,7 +481,7 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
       fault_sim_evaluate(sort_wlist[i]);
     }
   } /* event evaluations end here */
-
+  
   while (!wlist_faulty.empty()) {
     w = wlist_faulty.front();
     wlist_faulty.pop_front();
@@ -492,12 +492,15 @@ void ATPG::genFailLog_fault_sim_a_vector(const string &vec, int &num_of_current_
     if(w->is_output()){
       // 1.2. we should compare good value(wire_value_g) and faulty value(wire_value_f)
       int detected = w->wire_value_g ^ w->wire_value_f;
-      // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
-      // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-      if(((Mask[0] & detected) != 0) && ((w->wire_value_g & Mask[0]) != Unknown[0]) && ((w->wire_value_f & Mask[0]) != Unknown[0])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-        failed_ws.insert(w);
-        
+      for(int f_idx=0; f_idx<1; ++f_idx){ // for every undetected fault
+        // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
+        // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
+        if(((Mask[f_idx] & detected) != 0) && ((w->wire_value_g & Mask[f_idx]) != Unknown[f_idx]) && ((w->wire_value_f & Mask[f_idx]) != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
+          failed_ws.insert(w);
+          
+        }
       }
+      //printf("%s %x \n",w->name.c_str(),  w->wire_value_f);
     }
   } // pop out all faulty wires
   num_of_fault = 0;  // reset the counter of faults in a packet
