@@ -278,6 +278,9 @@ class ATPG {
                                   in the presence of 16 faults. (for pfedfs) */
     int wlist_index;           /* index into the sorted_wlist array */
 
+    unordered_map<string, wptr> map_po;  /* po_wire_name --> PO_wire*/
+    unordered_map<string, int> map_invcnt;  /* po_wire_name --> #inv_count from this node to PO*/
+    unordered_map<string, bool> map_po_reconverge;  /* po_wire_name --> #n fanout branches reconverge from this node to PO*/
     //  the following functions control/observe the state of wire
     //  HCY 2020/2/6
     void set_(int type) { flag |= type; }

@@ -36,8 +36,41 @@ void ATPG::print_circuit_summary(){
     fprintf(stdout, "\n");
 }
 
-void ATPG::construct_po_map(){ // TODO: Step 0. 
-    
+void ATPG::construct_po_map(){ // TODO: Step 0. DFS from PO to PI, give all nodes' po_map and inv_count_toPO
+  forward_list<pair<wptr,int> > wire_invcnt_stack; // stack of wires to be traverse by DFS
+
+  for (wptr wptr_po: cktout) {
+    // push PO into stack
+    wire_invcnt_stack.push_front(pair<wptr,int>(wptr_po, 0)); 
+    // 1. BFS pop a wire, 2. set the map_po and map_invcnt and map_po_reconverge, 3. and push it's fanin wires into stack
+    while (!wire_invcnt_stack.empty()) { // pop every node in the stack and mark them
+      int invcnt; // inv_count to PO
+      wptr wcur; // current wire
+      // 1. BFS pop a wire
+      std::tie(wcur, invcnt) = wire_invcnt_stack.front();
+      wire_invcnt_stack.pop_front();
+      // 2. set the map_po and map_invcnt and map_po_reconverge
+      if (wcur->map_po.find(wptr_po->name) != wcur->map_po.end()) wcur->map_po_reconverge[wptr_po->name] = true; else wcur->map_po_reconverge[wptr_po->name] = false;
+      wcur->map_po[wptr_po->name] = wptr_po;
+      wcur->map_invcnt[wptr_po->name] = invcnt;
+      
+      if(wcur->inode.front()->type==NOT || wcur->inode.front()->type==NAND || wcur->inode.front()->type==NOR || wcur->inode.front()->type==EQV){ // has inv
+        invcnt += 1;
+      }
+      // 3. push it's fanin wires into stack
+      for(wptr wi : wcur->inode.front()->iwire){ // push all fanins into stack
+        wire_invcnt_stack.push_front(pair<wptr,int>(wi, invcnt));
+      }
+    }
+  }
+
+  // print the info of the maps
+  // for (wptr wptr_ele: sort_wlist) {
+  //   cout << "Wire " << wptr_ele->name << " POs:\n";
+  //   for(auto it : wptr_ele->map_po){
+  //     cout << "  " << it.second->name << " p="<< ((wptr_ele->map_invcnt[it.first]%2==1)?1:0) << ", b_reconv="<<wptr_ele->map_po_reconverge[it.first] << "\n";
+  //   }
+  // }
 }
 
 void ATPG::ranking(){
