@@ -105,6 +105,7 @@ class ATPG {
   bool get_diag_only() { return diag_only; }
 
   /* faultDiag.cpp  */
+  void MSAF_simulation(vector<int>& );
   void genFailLog_generate_fault_list();
   void genFailLog_fault_simulation(int &);
   void genFailLog_fault_sim_a_vector(const string &, int &, int &);
@@ -144,6 +145,7 @@ class ATPG {
   /* fault list */
   forward_list<fptr_s> flist;          /* fault list */
   forward_list<fptr> flist_undetect;   /* undetected fault list */
+  vector<fptr> flist_undetect1;
   // forward_list<tsptr> tslist;          /* undetected fault list */
   vector<fptr> ranks;
   /* circuit */
