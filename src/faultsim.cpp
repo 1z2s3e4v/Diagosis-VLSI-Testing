@@ -312,7 +312,7 @@ void ATPG::fault_sim_evaluate(const wptr w) {
   if (w->wire_value_g != new_value) {
 
     /* if this wire is faulty, make sure the fault remains injected */
-    if (w->is_fault_injected()) {
+    if (w->is_fault_injected() && w->fixed == FALSE) {
       combine(w, new_value);
     }
 
@@ -481,7 +481,7 @@ void ATPG::inject_fault_value(const wptr faulty_wire, const int &bit_position, c
   } else if(fault_type == STUCK1){ // SA0: use OR GATE with input 1 to simulate as stuck at '1'. (See ch5 p.21)
     faulty_wire->wire_value_f = faulty_wire->wire_value_f | Mask[bit_position];
   } else{
-    cout << "[Error] - Niether SA0 nor SA1.\n";
+    cout << "[Error] - Niether SA0 nor SA1.\n" << faulty_wire->name;
   }
   // 2. Call inject_fault_at() to set the fault_flag of the injected bit position.
   faulty_wire->inject_fault_at(bit_position);

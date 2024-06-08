@@ -146,6 +146,16 @@ class ATPG {
   forward_list<fptr_s> flist;          /* fault list */
   forward_list<fptr> flist_undetect;   /* undetected fault list */
   vector<fptr> flist_undetect1;
+  vector<string> PT_set;
+  vector<string> FT_set;
+  vector<fptr> SF;                      // suspected faults
+  vector<fptr> PNF;                     // Potentially nonexistent faults
+  unordered_set<string>   mismatching_output; 
+  void single_SAF_simulation(const string &);
+  void single_SAF_simulation23(const string &, int&);
+  void single_SAF_simulation34(const string &, int&);
+  void multiple_SAF_simulation(const string &);
+  void multiple_SAF_simulation1(const string &);
   // forward_list<tsptr> tslist;          /* undetected fault list */
   vector<fptr> ranks;
   /* circuit */
@@ -282,7 +292,7 @@ class ATPG {
     int wire_value_f;           /* (32 bits) represents values of this wire 
                                   in the presence of 16 faults. (for pfedfs) */
     int wlist_index;           /* index into the sorted_wlist array */
-
+    bool fixed;
     //  the following functions control/observe the state of wire
     //  HCY 2020/2/6
     void set_(int type) { flag |= type; }
@@ -380,6 +390,7 @@ class ATPG {
     int tfsp;
     int tpsp;
     double score;
+    bool selected;
     unordered_set<string> eqv_faults; // save as string (ex: "11GAT g3 GI SA0" or "7GAT dummy_gate5 GO SA0")
   }; // class FAULT
 

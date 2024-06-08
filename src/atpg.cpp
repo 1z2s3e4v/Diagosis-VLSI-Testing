@@ -170,6 +170,7 @@ ATPG::WIRE::WIRE() {
     this->wire_value_g = 0;
     this->wire_value_f = 0;
     this->wlist_index = 0;
+    this->fixed = FALSE;
 }
 
 /* constructor of NODE */
@@ -194,6 +195,7 @@ ATPG::FAULT::FAULT() {
     this->tfsp = 0;
     this->tpsp = 0;
     this->score = 0;
+    this->selected = false;
 }
 
 ATPG::TEST_RESULT::TEST_RESULT() {
