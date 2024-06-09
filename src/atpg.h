@@ -150,12 +150,15 @@ class ATPG {
   vector<string> FT_set;
   vector<fptr> SF;                      // suspected faults
   vector<fptr> PNF;                     // Potentially nonexistent faults
+  unordered_map<string, vector<fptr>>   SF1; 
+  unordered_map<string, vector<fptr>>   PNF1; 
   unordered_set<string>   mismatching_output; 
   void single_SAF_simulation(const string &);
   void single_SAF_simulation23(const string &, int&);
   void single_SAF_simulation34(const string &, int&);
   void multiple_SAF_simulation(const string &);
   void multiple_SAF_simulation1(const string &);
+  
   // forward_list<tsptr> tslist;          /* undetected fault list */
   vector<fptr> ranks;
   /* circuit */
@@ -291,6 +294,8 @@ class ATPG {
                                   the same [00|11|01] replicated by 16 times (for pfedfs) */
     int wire_value_f;           /* (32 bits) represents values of this wire 
                                   in the presence of 16 faults. (for pfedfs) */
+     int wire_value_f1;           /* (32 bits) represents values of this wire 
+                                  in the presence of 16 faults. (for pfedfs) */                             
     int wlist_index;           /* index into the sorted_wlist array */
     bool fixed;
     //  the following functions control/observe the state of wire

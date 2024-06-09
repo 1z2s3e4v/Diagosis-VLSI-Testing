@@ -77,6 +77,7 @@ void ATPG::diag(){
   for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     flist_undetect1.push_back(*pos);
     SF.push_back(*pos);
+    SF1[sort_wlist[(*pos)->to_swlist]->name ];
   }
   for (auto vec : vectors){
     if(tr_unexamined1.find(vec) != tr_unexamined1.end())  FT_set.push_back(vec);  //failing test set
@@ -99,8 +100,8 @@ void ATPG::diag(){
     //cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << endl;
   }
 
-  
-  for (int timer = 0; timer < 100 ; timer ++)
+  int prev = -1;
+  for (int timer = 0; timer < 10 ; timer ++)
   {
     int i = 0;
     int drop1 =0, drop2 =0;
@@ -108,21 +109,39 @@ void ATPG::diag(){
     //Phase 2
     for(int fi = 0 ; fi < FT_set.size(); fi++)
     {
+      cout << "\n phase 2 " <<FT_set[fi] << endl;
+      for( auto f : SF)
+      {
+        //cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << endl;
+      }
       multiple_SAF_simulation(FT_set[fi]);
-      if(!mismatching_output.empty()){single_SAF_simulation23(FT_set[fi], drop1);i++;}
+      if(!mismatching_output.empty()){
+        //for(auto m : mismatching_output) cout << m << endl;
+        single_SAF_simulation23(FT_set[fi], drop1);i++;
+      
+      }
       mismatching_output.erase(mismatching_output.begin(), mismatching_output.end());
     }
     //Phase 3
     for(int pi = 0 ; pi < PT_set.size(); pi++)
     {
-      //cout << " phase 3 " <<PT_set[pi] << pi <<PT_set.size()  << endl;
+      cout << "\n phase 3 " <<PT_set[pi]  << endl;
+      for( auto f : SF)
+      {
+        //cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << endl;
+      }
       multiple_SAF_simulation1(PT_set[pi]);
       //cout << timer << " " << SF.size() << " " << PNF.size()  <<endl;
-      if(!mismatching_output.empty()){single_SAF_simulation34(PT_set[pi], drop2);i++ ;}
+      if(!mismatching_output.empty()){
+        //for(auto m : mismatching_output) cout << m << endl;
+        single_SAF_simulation34(PT_set[pi], drop2);i++ ;
+      }
       mismatching_output.erase(mismatching_output.begin(), mismatching_output.end());
     }
     reverse(SF.begin(), SF.end());
-    if((i == 0) || (drop1+drop2 == 0)){cout << "con1 con2 " << endl;break;}
+    if ((prev == SF.size()) &&  (i == 0) && (timer%2 == 0) ){cout << "con1 con2 "  << timer << endl;break;}
+    cout << i  <<" "   << timer << endl;
+    prev =SF.size();
   }
 
   cout << endl;
@@ -676,22 +695,22 @@ void ATPG::multiple_SAF_simulation(const string &vec) {
     f =  SF[index];
     if ((f->node->type == OUTPUT) ||
         (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
-
       if (!(sort_wlist[f->to_swlist]->is_faulty())) {
         sort_wlist[f->to_swlist]->set_faulty();
         wlist_faulty.push_front(sort_wlist[f->to_swlist]);
       }
-      if (sort_wlist[f->to_swlist]->fixed = FALSE){ 
+      if (sort_wlist[f->to_swlist]->fixed == FALSE){ 
         inject_fault_value(sort_wlist[f->to_swlist], num_of_fault, f->fault_type);
         /* mark the wire as having a fault injected
           * and schedule the outputs of this gate */
         sort_wlist[f->to_swlist]->set_fault_injected();
         sort_wlist[f->to_swlist]->fixed = TRUE;
         start_wire_index = min(start_wire_index, f->to_swlist);
-      }
-      else {
-        f->detect = TRUE;
-      }
+      } 
+      else
+        {
+          f->detect =TRUE;
+        }
     }
     else 
     {
@@ -709,49 +728,26 @@ void ATPG::multiple_SAF_simulation(const string &vec) {
           sort_wlist[f->to_swlist]->set_fault_injected();
           sort_wlist[f->to_swlist]->fixed = TRUE;
           for (auto pos_n : sort_wlist[f->to_swlist]->onode) {
-              pos_n->owire.front()->set_scheduled();
-            
+              if(pos_n->owire.front()->fixed == FALSE)pos_n->owire.front()->set_scheduled();
           }
           start_wire_index = min(start_wire_index, f->to_swlist);
         }
-        else {
-          f->detect = TRUE;
+        else
+        {
+          f->detect =TRUE;
         }
         //cout << sort_wlist[f->to_swlist]->name <<  sort_wlist[f->to_swlist]->wire_value_f <<endl;
       }
       else
-      {
-        /* if f is an gate input fault */
-        faulty_wire = get_faulty_wire(f, fault_type);
-        if (faulty_wire != nullptr ) {
-          /* if the faulty_wire is a primary output, it is detected */
-          if (faulty_wire->fixed == FALSE ) {
-            if (!(faulty_wire->is_faulty())) {
-              faulty_wire->set_faulty();
-              wlist_faulty.push_front(faulty_wire);
-            }
-            /* add the fault to the simulated list and inject it */
-            inject_fault_value(faulty_wire, num_of_fault, fault_type);
-            /* mark the faulty_wire as having a fault injected
-            *  and schedule the outputs of this gate */
-            faulty_wire->set_fault_injected();
-            faulty_wire->fixed == TRUE;
-            if(!faulty_wire->is_output()){
-              for (auto pos_n : faulty_wire->onode) {
-                pos_n->owire.front()->set_scheduled();
-              }
-            }
-            
-            start_wire_index = min(start_wire_index, f->to_swlist);
-          } else {
-            f->detect = TRUE;   
-          }
-        }
+      { 
+        continue;
       }
     }
   }
-    /* starting with start_wire_index, evaulate all scheduled wires
-    * start_wire_index helps to save time. */
+  for (i = 0; i < 0; i++) {
+    printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
+    //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
+  }
   for (i = start_wire_index; i < nckt; i++) {
     if (sort_wlist[i]->is_scheduled()) {
       sort_wlist[i]->remove_scheduled();
@@ -759,14 +755,86 @@ void ATPG::multiple_SAF_simulation(const string &vec) {
     }
   } /* event evaluations end here */
 
+  for (i = 0; i < 0; i++) {
+    printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
+    //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
+  }
+  start_wire_index = 10000;
+  for (int index = 0; index < SF.size(); index ++) {
+    f =  SF[index];
+    if ((f->node->type == OUTPUT) ||
+        (f->io == GO )) {
+        continue;
+    }
+    else // Gate input
+    {
+      int tmp = sort_wlist[ f->to_swlist]->wire_value_f;
+      for (auto wire : f->node->iwire)
+      {
+        //printf("%s %x %s %x ",   wire->name .c_str(), wire->wire_value_f,   sort_wlist[ f->to_swlist]->name .c_str(), sort_wlist[ f->to_swlist]->wire_value_f);
+        for(auto ff : SF1[wire->name])
+        {
+          if ((ff->io == 0) && (ff->node->name == f->node->name) && (wire->name != sort_wlist[ f->to_swlist]->name)){
+            inject_fault_value(wire, num_of_fault, ff->fault_type);
+            wire->wire_value_f1 = wire->wire_value_f;
+          }
+        }
+      }
+      sort_wlist[ f->to_swlist]->wire_value_f1 = sort_wlist[ f->to_swlist]->wire_value_f;
+      inject_fault_value( sort_wlist[ f->to_swlist], num_of_fault, f->fault_type);
+      faulty_wire = f->node->owire.front();
+      if(faulty_wire->fixed == FALSE) fault_sim_evaluate(faulty_wire);
+      sort_wlist[ f->to_swlist]->wire_value_f = sort_wlist[ f->to_swlist]->wire_value_f1;
+
+      for (auto wire : f->node->iwire)
+      {
+        //printf("%s %x %s %x ",   wire->name .c_str(), wire->wire_value_f,   sort_wlist[ f->to_swlist]->name .c_str(), sort_wlist[ f->to_swlist]->wire_value_f);
+        for(auto ff : SF1[wire->name])
+        {
+          if ((ff->io == 0) && (ff->node->name == f->node->name) && (wire->name != sort_wlist[ f->to_swlist]->name)){
+            wire->wire_value_f = wire->wire_value_f1;
+          }
+        }
+      }
+      if (faulty_wire != nullptr ) {
+        /* if the faulty_wire is a primary output, it is detected */
+        if (faulty_wire->fixed == FALSE ) {
+          if (!(faulty_wire->is_faulty())) {
+            faulty_wire->set_faulty();
+            wlist_faulty.push_front(faulty_wire);
+          }
+          /* add the fault to the simulated list and inject it */
+          //inject_fault_value(faulty_wire, num_of_fault, fault_type);
+          /* mark the faulty_wire as having a fault injected
+          *  and schedule the outputs of this gate */
+          faulty_wire->set_fault_injected();
+          faulty_wire->fixed == TRUE;
+          if(!faulty_wire->is_output()){
+            for (auto pos_n : faulty_wire->onode) {
+              if(pos_n->owire.front()->fixed == FALSE)pos_n->owire.front()->set_scheduled();
+            }
+          }
+          start_wire_index = min(start_wire_index, f->to_swlist);
+        }
+      }
+    }
+  }
+
+  for (i = start_wire_index; i < nckt; i++) {
+    if (sort_wlist[i]->is_scheduled()) {
+      sort_wlist[i]->remove_scheduled();
+      fault_sim_evaluate(sort_wlist[i]);
+    }
+  }
+
   /* pop out all faulty wires from the wlist_faulty
     * if PO's value is different from good PO's value, and it is not unknown
     * then the fault is detected.
     *
     * IMPORTANT! remember to reset the wires' faulty values back to fault-free values.
   */
-  for (i = 0; i < nckt; i++) {
-    //printf("%s %x \n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f);
+  for (i = 0; i < 0; i++) {
+    printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
     //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
   }
   while (!wlist_faulty.empty()) {
@@ -808,8 +876,6 @@ void ATPG::multiple_SAF_simulation(const string &vec) {
   num_of_fault = 0;  // reset the counter of faults in a packet
   start_wire_index = 10000;  //reset this index to a very large value.
 
-
-
 }/* end of fault_sim_a_vector */
 /* multiple SAF simulate a single test vector */
 void ATPG::multiple_SAF_simulation1(const string &vec) {
@@ -848,7 +914,10 @@ void ATPG::multiple_SAF_simulation1(const string &vec) {
 
   sim(); /* do a fault-free simulation, see sim.cpp */
   if (debug) { display_io(); }
-
+  for (i = 0; i < 0; i++) {
+    printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
+    //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
+  }
   /* expand the fault-free value into 32 bits (00 = logic zero, 11 = logic one, 01 = unknown)
    * and store it in wire_value_g (good value) and wire_value_f (faulty value)*/
   for (i = 0; i < nckt; i++) {
@@ -874,21 +943,21 @@ void ATPG::multiple_SAF_simulation1(const string &vec) {
     f =  SF[index];
     if ((f->node->type == OUTPUT) ||
         (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
-
       if (!(sort_wlist[f->to_swlist]->is_faulty())) {
         sort_wlist[f->to_swlist]->set_faulty();
         wlist_faulty.push_front(sort_wlist[f->to_swlist]);
-        
       }
-      if (sort_wlist[f->to_swlist]->fixed = FALSE){ 
+      if (sort_wlist[f->to_swlist]->fixed == FALSE){ 
         inject_fault_value(sort_wlist[f->to_swlist], num_of_fault, f->fault_type);
         /* mark the wire as having a fault injected
           * and schedule the outputs of this gate */
         sort_wlist[f->to_swlist]->set_fault_injected();
         sort_wlist[f->to_swlist]->fixed = TRUE;
         start_wire_index = min(start_wire_index, f->to_swlist);
+      } else
+      {
+        f->detect =TRUE;
       }
-      
     }
     else 
     {
@@ -906,57 +975,22 @@ void ATPG::multiple_SAF_simulation1(const string &vec) {
           sort_wlist[f->to_swlist]->set_fault_injected();
           sort_wlist[f->to_swlist]->fixed = TRUE;
           for (auto pos_n : sort_wlist[f->to_swlist]->onode) {
-              pos_n->owire.front()->set_scheduled();
-            
+              if(pos_n->owire.front()->fixed == FALSE)pos_n->owire.front()->set_scheduled();
           }
           start_wire_index = min(start_wire_index, f->to_swlist);
         }
         //cout << sort_wlist[f->to_swlist]->name <<  sort_wlist[f->to_swlist]->wire_value_f <<endl;
       }
       else
-      {
-        /* if f is an gate input fault */
-        faulty_wire = get_faulty_wire(f, fault_type);
-        if (faulty_wire != nullptr ) {
-          /* if the faulty_wire is a primary output, it is detected */
-          if (faulty_wire->fixed == FALSE ) {
-            /* add the fault to the simulated list and inject it */
-              inject_fault_value(faulty_wire, num_of_fault, fault_type);
-              /* mark the faulty_wire as having a fault injected
-              *  and schedule the outputs of this gate */
-              faulty_wire->set_fault_injected();
-              faulty_wire->fixed == TRUE;
-          } else {
-            /* if faulty_wire is not already marked as faulty, mark it as faulty
-              * and add the wire to the list of faulty wires. */
-            if (!(faulty_wire->is_faulty())) {
-              faulty_wire->set_faulty();
-              wlist_faulty.push_front(faulty_wire);
-            }
-            if( faulty_wire->fixed == FALSE)
-            {
-              /* add the fault to the simulated list and inject it */
-              inject_fault_value(faulty_wire, num_of_fault, fault_type);
-              /* mark the faulty_wire as having a fault injected
-              *  and schedule the outputs of this gate */
-              faulty_wire->set_fault_injected();
-              for (auto pos_n : faulty_wire->onode) {
-                pos_n->owire.front()->set_scheduled();
-              }
-              start_wire_index = min(start_wire_index, f->to_swlist);
-            }
-            faulty_wire->fixed == TRUE;
-          }
-        }
+      { 
+        continue;
       }
     }
   }
-  for (i = 0; i < nckt; i++) {
-    //printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
+  for (i = 0; i < 0; i++) {
+    printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
     //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
   }
-    /* starting with start_wire_index, evaulate all scheduled wires
-    * start_wire_index helps to save time. */
   for (i = start_wire_index; i < nckt; i++) {
     if (sort_wlist[i]->is_scheduled()) {
       sort_wlist[i]->remove_scheduled();
@@ -964,14 +998,79 @@ void ATPG::multiple_SAF_simulation1(const string &vec) {
     }
   } /* event evaluations end here */
 
-  /* pop out all faulty wires from the wlist_faulty
-    * if PO's value is different from good PO's value, and it is not unknown
-    * then the fault is detected.
-    *
-    * IMPORTANT! remember to reset the wires' faulty values back to fault-free values.
-  */
-  for (i = 0; i < nckt; i++) {
-    //printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
+  for (i = 0; i < 0; i++) {
+    printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
+    //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
+  }
+  start_wire_index = 10000;
+  for (int index = 0; index < SF.size(); index ++) {
+    f =  SF[index];
+    if ((f->node->type == OUTPUT) ||
+        (f->io == GO )) {
+        continue;
+    }
+    else // Gate input
+    {
+      int tmp = sort_wlist[ f->to_swlist]->wire_value_f;
+      for (auto wire : f->node->iwire)
+      {
+        //printf("%s %x %s %x ",   wire->name .c_str(), wire->wire_value_f,   sort_wlist[ f->to_swlist]->name .c_str(), sort_wlist[ f->to_swlist]->wire_value_f);
+        for(auto ff : SF1[wire->name])
+        {
+          if ((ff->io == 0) && (ff->node->name == f->node->name) && (wire->name != sort_wlist[ f->to_swlist]->name)){
+            inject_fault_value(wire, num_of_fault, ff->fault_type);
+            wire->wire_value_f1 = wire->wire_value_f;
+          }
+        }
+      }
+      sort_wlist[ f->to_swlist]->wire_value_f1 = sort_wlist[ f->to_swlist]->wire_value_f;
+      inject_fault_value( sort_wlist[ f->to_swlist], num_of_fault, f->fault_type);
+      faulty_wire = f->node->owire.front();
+      if(faulty_wire->fixed == FALSE) fault_sim_evaluate(faulty_wire);
+      sort_wlist[ f->to_swlist]->wire_value_f = sort_wlist[ f->to_swlist]->wire_value_f1;
+
+      for (auto wire : f->node->iwire)
+      {
+        //printf("%s %x %s %x ",   wire->name .c_str(), wire->wire_value_f,   sort_wlist[ f->to_swlist]->name .c_str(), sort_wlist[ f->to_swlist]->wire_value_f);
+        for(auto ff : SF1[wire->name])
+        {
+          if ((ff->io == 0) && (ff->node->name == f->node->name) && (wire->name != sort_wlist[ f->to_swlist]->name)){
+            wire->wire_value_f = wire->wire_value_f1;
+          }
+        }
+      }
+      if (faulty_wire != nullptr ) {
+        /* if the faulty_wire is a primary output, it is detected */
+        if (faulty_wire->fixed == FALSE ) {
+          if (!(faulty_wire->is_faulty())) {
+            faulty_wire->set_faulty();
+            wlist_faulty.push_front(faulty_wire);
+          }
+          /* add the fault to the simulated list and inject it */
+          //inject_fault_value(faulty_wire, num_of_fault, fault_type);
+          /* mark the faulty_wire as having a fault injected
+          *  and schedule the outputs of this gate */
+          faulty_wire->set_fault_injected();
+          faulty_wire->fixed == TRUE;
+          if(!faulty_wire->is_output()){
+            for (auto pos_n : faulty_wire->onode) {
+              if(pos_n->owire.front()->fixed == FALSE)pos_n->owire.front()->set_scheduled();
+            }
+          }
+          start_wire_index = min(start_wire_index, f->to_swlist);
+        }
+      }
+    }
+  }
+
+  for (i = start_wire_index; i < nckt; i++) {
+    if (sort_wlist[i]->is_scheduled()) {
+      sort_wlist[i]->remove_scheduled();
+      fault_sim_evaluate(sort_wlist[i]);
+    }
+  }
+  for (i = 0; i < 0; i++) {
+    printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
     //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
   }
   while (!wlist_faulty.empty()) {
@@ -1233,10 +1332,27 @@ void ATPG::single_SAF_simulation23(const string &vec, int& curr) {
     std::remove_if(PNF.begin(), PNF.end(),
         [&](const fptr fptr_ele) {
         if (fptr_ele->detect == TRUE) {
-          fptr_ele->detect == FALSE;
-          //cout << fptr_ele->fault_no << " " << fptr_ele->node->name << ":" << (fptr_ele->io?"O":"I")<< " "  << sort_wlist[fptr_ele->to_swlist]->name << "SA" << fptr_ele->fault_type << endl;
+          
+                    cout <<"drop2: "  <<fptr_ele->fault_no << " " << fptr_ele->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele->to_swlist]->name << "SA" << fptr_ele->fault_type << endl;
           curr++;
           SF.push_back(fptr_ele);
+          
+          PNF1[sort_wlist[fptr_ele->to_swlist]->name].erase(
+            std::remove_if(PNF1[sort_wlist[fptr_ele->to_swlist]->name].begin(), PNF1[sort_wlist[fptr_ele->to_swlist]->name].end(),
+                  [&](const fptr fptr_ele1) {
+                  if (fptr_ele1->detect == TRUE) {
+                    cout <<"drop: "  <<fptr_ele1->fault_no << " " << fptr_ele1->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele1->to_swlist]->name << "SA" << fptr_ele1->fault_type << endl;
+
+                    SF1[sort_wlist[fptr_ele->to_swlist]->name].push_back(fptr_ele1);
+                    return true;
+                  } else {
+                                        cout <<"drop1: "  <<fptr_ele1->fault_no << " " << fptr_ele1->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele1->to_swlist]->name << "SA" << fptr_ele1->fault_type << endl;
+
+                    return false;
+                  }
+                }),
+            PNF1[sort_wlist[fptr_ele->to_swlist]->name].end());
+          fptr_ele->detect == FALSE;
           return true;
         } else {
           return false;
@@ -1311,7 +1427,7 @@ void ATPG::single_SAF_simulation34(const string &vec, int& curr) {
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
         f->detected_time++; /// BONUS
-        if(f->detected_time >= detected_num){
+        if(mismatching_output.find(sort_wlist[f->to_swlist]->name) != mismatching_output.end()){
           f->detect = TRUE;
         }
       } else {
@@ -1429,8 +1545,10 @@ void ATPG::single_SAF_simulation34(const string &vec, int& curr) {
             // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
             // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
             if(((Mask[f_idx] & detected) != 0) && ((w->wire_value_g & Mask[f_idx]) != Unknown[f_idx]) && ((w->wire_value_f & Mask[f_idx]) != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-              //cout << w->name;
-              if(mismatching_output.find(w->name) != mismatching_output.end()) simulated_fault_list[f_idx]->detect = TRUE;
+              
+              if(mismatching_output.find(w->name) != mismatching_output.end()){
+                  simulated_fault_list[f_idx]->detect = TRUE;
+              } 
             }
           }
         }
@@ -1447,8 +1565,22 @@ void ATPG::single_SAF_simulation34(const string &vec, int& curr) {
     std::remove_if(SF.begin(), SF.end(),
         [&](const fptr fptr_ele) {
         if (fptr_ele->detect == TRUE) {
+          cout <<"drop6: "  <<fptr_ele->fault_no << " " << fptr_ele->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele->to_swlist]->name << "SA" << fptr_ele->fault_type << endl;
+
+          SF1[sort_wlist[fptr_ele->to_swlist]->name].erase(
+            std::remove_if(SF1[sort_wlist[fptr_ele->to_swlist]->name].begin(), SF1[sort_wlist[fptr_ele->to_swlist]->name].end(),
+                  [&](const fptr fptr_ele1) {
+                  if (fptr_ele1->detect == TRUE) {
+                    cout <<"drop: "  <<fptr_ele1->fault_no << " " << fptr_ele1->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele1->to_swlist]->name << "SA" << fptr_ele1->fault_type << endl;
+
+                    PNF1[sort_wlist[fptr_ele->to_swlist]->name].push_back(fptr_ele1);
+                    return true;
+                  } else {
+                    return false;
+                  }
+                }),
+            SF1[sort_wlist[fptr_ele->to_swlist]->name].end());
           fptr_ele->detect == FALSE;
-          //cout << fptr_ele->fault_no << " " << fptr_ele->node->name << ":" << (fptr_ele->io?"O":"I")<< " "  << sort_wlist[fptr_ele->to_swlist]->name << "SA" << fptr_ele->fault_type << endl;
           curr++;
           PNF.push_back(fptr_ele);
           return true;

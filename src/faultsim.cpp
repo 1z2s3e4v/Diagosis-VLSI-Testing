@@ -312,7 +312,7 @@ void ATPG::fault_sim_evaluate(const wptr w) {
   if (w->wire_value_g != new_value) {
 
     /* if this wire is faulty, make sure the fault remains injected */
-    if (w->is_fault_injected() && w->fixed == FALSE) {
+    if (w->is_fault_injected()) {
       combine(w, new_value);
     }
 
