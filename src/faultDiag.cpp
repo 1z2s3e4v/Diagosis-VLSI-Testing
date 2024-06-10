@@ -77,7 +77,7 @@ void ATPG::diag(){
   for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
     flist_undetect1.push_back(*pos);
     SF.push_back(*pos);
-    SF1[sort_wlist[(*pos)->to_swlist]->name ];
+    
   }
   for (auto vec : vectors){
     if(tr_unexamined1.find(vec) != tr_unexamined1.end())  FT_set.push_back(vec);  //failing test set
@@ -93,7 +93,8 @@ void ATPG::diag(){
 
   for (auto f : SF)
   {
-    //cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << endl;
+    SF1[sort_wlist[(f)->to_swlist]->name].push_back(f);
+    cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << endl;
   }
   for (auto f : PNF)
   {
@@ -116,7 +117,14 @@ void ATPG::diag(){
       }
       multiple_SAF_simulation(FT_set[fi]);
       if(!mismatching_output.empty()){
-        //for(auto m : mismatching_output) cout << m << endl;
+        for(auto m : mismatching_output) cout << m << endl;
+        single_SAF_simulation23(FT_set[fi], drop1);i++;
+      
+      }
+      mismatching_output.erase(mismatching_output.begin(), mismatching_output.end());
+      multiple_SAF_simulation(FT_set[fi]);
+      if(!mismatching_output.empty()){
+        for(auto m : mismatching_output) cout << m << endl;
         single_SAF_simulation23(FT_set[fi], drop1);i++;
       
       }
@@ -131,9 +139,16 @@ void ATPG::diag(){
         //cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << endl;
       }
       multiple_SAF_simulation1(PT_set[pi]);
-      //cout << timer << " " << SF.size() << " " << PNF.size()  <<endl;
+      cout << timer << " " << SF.size() << " " << PNF.size()  <<endl;
       if(!mismatching_output.empty()){
-        //for(auto m : mismatching_output) cout << m << endl;
+        for(auto m : mismatching_output) cout << m << endl;
+        single_SAF_simulation34(PT_set[pi], drop2);i++ ;
+      }
+      mismatching_output.erase(mismatching_output.begin(), mismatching_output.end());
+      multiple_SAF_simulation1(PT_set[pi]);
+      cout << timer << " " << SF.size() << " " << PNF.size()  <<endl;
+      if(!mismatching_output.empty()){
+        for(auto m : mismatching_output) cout << m << endl;
         single_SAF_simulation34(PT_set[pi], drop2);i++ ;
       }
       mismatching_output.erase(mismatching_output.begin(), mismatching_output.end());
@@ -149,6 +164,8 @@ void ATPG::diag(){
   {
     cout << f->fault_no << " " << f->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[f->to_swlist]->name << "SA" << f->fault_type << endl;
   }
+  cout << endl;
+
   cout << SF.size() <<  endl;
   flist_undetect.remove_if(
       [&](const fptr f) {
@@ -521,28 +538,35 @@ void ATPG::single_SAF_simulation(const string &vec) {
           /* if the fault is propagated, set faulty_wire equal to the faulty wire.
            * faulty_wire is the gate output of f.  */
           faulty_wire = get_faulty_wire(f, fault_type);
-          if (faulty_wire != nullptr ) {
+          if (faulty_wire != nullptr) {
+
             /* if the faulty_wire is a primary output, it is detected */
-            if (faulty_wire->fixed == FALSE ) {
+            if (faulty_wire->is_output()) {
+              f->detected_time++; /// BONUS
+              if(f->detected_time >= detected_num){
+                f->detect = TRUE;
+              }
+            } else {
+              /* if faulty_wire is not already marked as faulty, mark it as faulty
+               * and add the wire to the list of faulty wires. */
               if (!(faulty_wire->is_faulty())) {
                 faulty_wire->set_faulty();
                 wlist_faulty.push_front(faulty_wire);
               }
+
               /* add the fault to the simulated list and inject it */
+              simulated_fault_list[num_of_fault] = f;
               inject_fault_value(faulty_wire, num_of_fault, fault_type);
+
               /* mark the faulty_wire as having a fault injected
-              *  and schedule the outputs of this gate */
+               *  and schedule the outputs of this gate */
               faulty_wire->set_fault_injected();
-              faulty_wire->fixed == TRUE;
-              if(!faulty_wire->is_output()){
-                for (auto pos_n : faulty_wire->onode) {
-                  pos_n->owire.front()->set_scheduled();
-                }
+              for (auto pos_n : faulty_wire->onode) {
+                pos_n->owire.front()->set_scheduled();
               }
-              
+
+              num_of_fault++;
               start_wire_index = min(start_wire_index, f->to_swlist);
-            } else {
-              f->detect = TRUE;   
             }
           }
         }
@@ -620,8 +644,9 @@ void ATPG::single_SAF_simulation(const string &vec) {
     std::remove_if(SF.begin(), SF.end(),
         [&](const fptr fptr_ele) {
         if (fptr_ele->detect == TRUE) {
-          fptr_ele->detect == FALSE;
+          //fptr_ele->detect == FALSE;
           PNF.push_back(fptr_ele);
+          PNF1[sort_wlist[fptr_ele->to_swlist]->name].push_back(fptr_ele);
           return true;
         } else {
           return false;
@@ -744,7 +769,7 @@ void ATPG::multiple_SAF_simulation(const string &vec) {
       }
     }
   }
-  for (i = 0; i < 0; i++) {
+  for (i = 0; i < nckt; i++) {
     printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
     //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
   }
@@ -768,7 +793,6 @@ void ATPG::multiple_SAF_simulation(const string &vec) {
     }
     else // Gate input
     {
-      int tmp = sort_wlist[ f->to_swlist]->wire_value_f;
       for (auto wire : f->node->iwire)
       {
         //printf("%s %x %s %x ",   wire->name .c_str(), wire->wire_value_f,   sort_wlist[ f->to_swlist]->name .c_str(), sort_wlist[ f->to_swlist]->wire_value_f);
@@ -780,11 +804,16 @@ void ATPG::multiple_SAF_simulation(const string &vec) {
           }
         }
       }
+      cout << sort_wlist[ f->to_swlist]->name.c_str() << sort_wlist[ f->to_swlist]->wire_value_f1 << " " << sort_wlist[ f->to_swlist]->wire_value_f << endl;
+
       sort_wlist[ f->to_swlist]->wire_value_f1 = sort_wlist[ f->to_swlist]->wire_value_f;
+
+      cout << sort_wlist[ f->to_swlist]->name.c_str() << sort_wlist[ f->to_swlist]->wire_value_f1 << " " << sort_wlist[ f->to_swlist]->wire_value_f << endl;
       inject_fault_value( sort_wlist[ f->to_swlist], num_of_fault, f->fault_type);
       faulty_wire = f->node->owire.front();
       if(faulty_wire->fixed == FALSE) fault_sim_evaluate(faulty_wire);
       sort_wlist[ f->to_swlist]->wire_value_f = sort_wlist[ f->to_swlist]->wire_value_f1;
+      cout << sort_wlist[ f->to_swlist]->name.c_str() << sort_wlist[ f->to_swlist]->wire_value_f1 << " " << sort_wlist[ f->to_swlist]->wire_value_f << endl;
 
       for (auto wire : f->node->iwire)
       {
@@ -833,24 +862,10 @@ void ATPG::multiple_SAF_simulation(const string &vec) {
     *
     * IMPORTANT! remember to reset the wires' faulty values back to fault-free values.
   */
-  for (i = 0; i < 0; i++) {
+  for (i = 0; i < nckt; i++) {
     printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
     //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
-  }
-  while (!wlist_faulty.empty()) {
-    w = wlist_faulty.front();
-    wlist_faulty.pop_front();
-    w->remove_faulty();
-    w->remove_fault_injected();
-    w->set_fault_free();
-    /*TODO*/
-    /*
-      * After simulation is done,if wire is_output(), we should compare good value(wire_value_g) and faulty value(wire_value_f). 
-      * If these two values are different and they are not unknown, then the fault is detected.  We should update the simulated_fault_list.  Set detect to true if they are different.
-      * Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
-      * After that, don't forget to reset faulty values (wire_value_f) to their fault-free values (wire_value_g).
-      */
-    // 1.1. if wire is_output()
+    w = sort_wlist[i];
     if(w->is_output()){
       // 1.2. we should compare good value(wire_value_g) and faulty value(wire_value_f)
       int detected = w->wire_value_g ^ w->wire_value_f;
@@ -859,13 +874,20 @@ void ATPG::multiple_SAF_simulation(const string &vec) {
         // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
         if(((w->wire_value_g & Mask[f_idx]) != Unknown[f_idx]) && ((w->wire_value_f & Mask[f_idx]) != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
           // If sim result is different from observed value -> record mismatching output
+          cout <<w->name << w->wire_value_f << w->wire_value_g <<endl;
           if(((Mask[f_idx] & detected) != 0)&&(tr_unexamined1[vec].find(w->name) == tr_unexamined1[vec].end())) mismatching_output.insert(w->name);
           else if (((Mask[f_idx] & detected) == 0)&&(tr_unexamined1[vec].find(w->name) != tr_unexamined1[vec].end()))mismatching_output.insert(w->name);
         }
 
       }
     }
-
+  }
+  while (!wlist_faulty.empty()) {
+    w = wlist_faulty.front();
+    wlist_faulty.pop_front();
+    w->remove_faulty();
+    w->remove_fault_injected();
+    w->set_fault_free();
     // 4. After that, don't forget to reset faulty values (wire_value_f) to their fault-free values (wire_value_g)
     w->wire_value_f = w->wire_value_g;
 
@@ -1069,7 +1091,7 @@ void ATPG::multiple_SAF_simulation1(const string &vec) {
       fault_sim_evaluate(sort_wlist[i]);
     }
   }
-  for (i = 0; i < 0; i++) {
+  for (i = 0; i < nckt; i++) {
     printf("%s %x %x\n",  sort_wlist[i]->name.c_str(), sort_wlist[i]->wire_value_f, sort_wlist[i]->wire_value_g);
     //cout << sort_wlist[i]->name << " " << sort_wlist[i]->wire_value_f&0x03 << endl;
   }
@@ -1191,9 +1213,7 @@ void ATPG::single_SAF_simulation23(const string &vec, int& curr) {
        * the fault is detected */
       if ((f->node->type == OUTPUT) ||
           (f->io == GO && sort_wlist[f->to_swlist]->is_output())) {
-        if((mismatching_output.find(sort_wlist[f->to_swlist]->name) != mismatching_output.end())){
-          f->detect = TRUE;
-        }
+        
       } else {
 
         /* if f is an gate output fault */
@@ -1328,31 +1348,15 @@ void ATPG::single_SAF_simulation23(const string &vec, int& curr) {
       start_wire_index = 10000;  //reset this index to a very large value.
     } // end fault sim of a packet
   } // end loop. for f = flist
+  
   PNF.erase(
     std::remove_if(PNF.begin(), PNF.end(),
         [&](const fptr fptr_ele) {
         if (fptr_ele->detect == TRUE) {
           
-                    cout <<"drop2: "  <<fptr_ele->fault_no << " " << fptr_ele->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele->to_swlist]->name << "SA" << fptr_ele->fault_type << endl;
+          cout <<"drop2: "  <<fptr_ele->fault_no << " " << fptr_ele->node->name << ":" << (fptr_ele->io?"O":"I")<< " "  << sort_wlist[fptr_ele->to_swlist]->name << "SA" << fptr_ele->fault_type << endl;
           curr++;
           SF.push_back(fptr_ele);
-          
-          PNF1[sort_wlist[fptr_ele->to_swlist]->name].erase(
-            std::remove_if(PNF1[sort_wlist[fptr_ele->to_swlist]->name].begin(), PNF1[sort_wlist[fptr_ele->to_swlist]->name].end(),
-                  [&](const fptr fptr_ele1) {
-                  if (fptr_ele1->detect == TRUE) {
-                    cout <<"drop: "  <<fptr_ele1->fault_no << " " << fptr_ele1->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele1->to_swlist]->name << "SA" << fptr_ele1->fault_type << endl;
-
-                    SF1[sort_wlist[fptr_ele->to_swlist]->name].push_back(fptr_ele1);
-                    return true;
-                  } else {
-                                        cout <<"drop1: "  <<fptr_ele1->fault_no << " " << fptr_ele1->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele1->to_swlist]->name << "SA" << fptr_ele1->fault_type << endl;
-
-                    return false;
-                  }
-                }),
-            PNF1[sort_wlist[fptr_ele->to_swlist]->name].end());
-          fptr_ele->detect == FALSE;
           return true;
         } else {
           return false;
@@ -1360,7 +1364,24 @@ void ATPG::single_SAF_simulation23(const string &vec, int& curr) {
       }),
     PNF.end());
   /* fault dropping  */
+  for(auto v : PNF1)
+  {
+    for (auto it = PNF1[v.first].begin(); it != PNF1[v.first].end();)
+    {
+      fptr fptr_ele1 = *it;
+      if (fptr_ele1->detect == TRUE) {
+        cout <<"drop11: "  <<fptr_ele1->fault_no << " " << fptr_ele1->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele1->to_swlist]->name << "SA" << fptr_ele1->fault_type << endl;
 
+        if(std::find(SF1[v.first].begin(), SF1[v.first].end(), fptr_ele1) == SF1[v.first].end() ) 
+        {
+          SF1[v.first].push_back(fptr_ele1);
+        }
+        it = PNF1[v.first].erase(it);
+      }
+      else ++it;
+    }
+  }
+  
 }/* end of fault_sim_a_vector */
 
 
@@ -1565,30 +1586,35 @@ void ATPG::single_SAF_simulation34(const string &vec, int& curr) {
     std::remove_if(SF.begin(), SF.end(),
         [&](const fptr fptr_ele) {
         if (fptr_ele->detect == TRUE) {
-          cout <<"drop6: "  <<fptr_ele->fault_no << " " << fptr_ele->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele->to_swlist]->name << "SA" << fptr_ele->fault_type << endl;
-
-          SF1[sort_wlist[fptr_ele->to_swlist]->name].erase(
-            std::remove_if(SF1[sort_wlist[fptr_ele->to_swlist]->name].begin(), SF1[sort_wlist[fptr_ele->to_swlist]->name].end(),
-                  [&](const fptr fptr_ele1) {
-                  if (fptr_ele1->detect == TRUE) {
-                    cout <<"drop: "  <<fptr_ele1->fault_no << " " << fptr_ele1->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele1->to_swlist]->name << "SA" << fptr_ele1->fault_type << endl;
-
-                    PNF1[sort_wlist[fptr_ele->to_swlist]->name].push_back(fptr_ele1);
-                    return true;
-                  } else {
-                    return false;
-                  }
-                }),
-            SF1[sort_wlist[fptr_ele->to_swlist]->name].end());
-          fptr_ele->detect == FALSE;
+          cout <<"drop6: "  <<fptr_ele->fault_no << " " << fptr_ele->node->name << ":" << (fptr_ele->io?"O":"I")<< " "  << sort_wlist[fptr_ele->to_swlist]->name << "SA" << fptr_ele->fault_type << endl;
           curr++;
           PNF.push_back(fptr_ele);
+          //cout << sort_wlist[fptr_ele->to_swlist]->name << " " <<fptr_ele->detect <<  endl;
+
           return true;
-        } else {
+        } else if (fptr_ele->detect == FALSE){
           return false;
         }
       }),
     SF.end());
+  
+  for(auto v : SF1)
+  {
+    for (auto it = SF1[v.first].begin(); it != SF1[v.first].end();)
+    {
+      fptr fptr_ele1 = *it;
+      if (fptr_ele1->detect == TRUE) {
+        cout <<"drop11: "  <<fptr_ele1->fault_no << " " << fptr_ele1->node->name << ":" << (f->io?"O":"I")<< " "  << sort_wlist[fptr_ele1->to_swlist]->name << "SA" << fptr_ele1->fault_type << endl;
+
+        if(std::find(PNF1[v.first].begin(), PNF1[v.first].end(), fptr_ele1) == PNF1[v.first].end() ) 
+        {
+          PNF1[v.first].push_back(fptr_ele1);
+        }
+        it = SF1[v.first].erase(it);
+      }
+      else ++it;
+    }
+  }
   /* fault dropping  */
 
 }/* end of fault_sim_a_vector */
