@@ -393,7 +393,7 @@ void ATPG::read_vectors(const string &vetFile) {
     fprintf(stderr, "File %s could not be opened\n", vetFile.c_str());
     exit(EXIT_FAILURE);
   }
-
+  int vec_num=0;
   while (!file.eof() && !file.bad()) {
     getline(file, t); // get a line from the file
     if (t[0] != 'T') continue; // if this line is not a vector, ignore it
@@ -408,6 +408,8 @@ void ATPG::read_vectors(const string &vetFile) {
       //cout << "Before erase: " << t << endl;
       //cout << "After erase: " << vec << endl;
       vectors.push_back(vec); // append the vectors
+      vec2idx[vec] = vec_num;
+      vec_num++;
     }
   }
   file.close(); // close the file
@@ -436,10 +438,16 @@ void ATPG::read_faillog(const string &faillog) {
       error("No more room!");
     i = 0;
     f->index = k++;
-    while(t[i] != ' '){
+    while(t[i] != '['){
       i++;
     }
     i++;
+    while(t[i] != ']'){
+      f->vec_index *= 10;
+      f->vec_index += t[i]-'0';
+      i++;
+    }
+    i+=2;
     while(t[i] != ' '){
       vec += t[i];
       i++;
@@ -477,6 +485,11 @@ void ATPG::read_faillog(const string &faillog) {
     f->vec = vec;
     tr_unexamined1[vec].insert(f->node->owire.front()->name);
     //tr_unexamined.push_front(f.get());
+    string temp_str;
+    temp_str.append(to_string(f->vec_index));
+    temp_str.append(" ");
+    temp_str.append(f->node->owire.front()->name);
+    tr_failty[temp_str] = f->observed;
     tr.push_front(move(f)); 
     test_fails++;
   }

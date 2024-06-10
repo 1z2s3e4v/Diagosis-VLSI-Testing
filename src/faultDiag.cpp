@@ -39,6 +39,15 @@ void ATPG::print_circuit_summary(){
 void ATPG::construct_po_map(){ // TODO: Step 0. DFS from PO to PI, give all nodes' po_map and inv_count_toPO
   forward_list<pair<wptr,int> > wire_invcnt_stack; // stack of wires to be traverse by DFS
 
+  //sort_wlist[f->to_swlist]->is_output();
+  for (int j = sort_wlist.size() - 1; j >=0 ; j--){
+    if(sort_wlist[j]->is_output()){
+      PO_name.push_back(sort_wlist[j]->name);
+    }else{
+      break;
+    }
+  }
+
   for (wptr wptr_po: cktout) {
     // push PO into stack
     wire_invcnt_stack.push_front(pair<wptr,int>(wptr_po, 0)); 
@@ -51,6 +60,7 @@ void ATPG::construct_po_map(){ // TODO: Step 0. DFS from PO to PI, give all node
       wire_invcnt_stack.pop_front();
       // 2. set the map_po and map_invcnt and map_po_reconverge
       if (wcur->map_po.find(wptr_po->name) != wcur->map_po.end()) wcur->map_po_reconverge[wptr_po->name] = true; else wcur->map_po_reconverge[wptr_po->name] = false;
+      wcur->po_list.push_back(wptr_po->name);
       wcur->map_po[wptr_po->name] = wptr_po;
       wcur->map_invcnt[wptr_po->name] = invcnt;
       
@@ -168,9 +178,59 @@ void ATPG::diag(){
       if (f->detect == REDUNDANT) { continue; } /* ignore redundant faults */
       /* consider only active (aka. excited) fault
        * (sa1 with correct output of 0 or sa0 with correct output of 1) */
+      
       // if (...) // TODO: Step 1. Structural Backtracing: Check whether pos is in all failing fanin cone
       // if (...) // TODO: Step 2. Parity Check: Check whether vp=f
-      if ( f->fault_type != sort_wlist[f->to_swlist]->value) { // Step 3. Excitation Condition Check: Check the sa-v != n
+      bool po_flag = 1, parity_flag = 0, invcnt, out_value;
+      string temp_str;
+      if(tr_unexamined1[vec].empty()){
+        f->eliminate_flag[vec2idx[vec]] = -1;
+      }else{
+        po_flag = 1;
+        for(auto po: sort_wlist[f->to_swlist]->po_list){
+          if(tr_unexamined1[vec].find(po)
+              != tr_unexamined1[vec].end()){
+            po_flag = 0;
+            //cout<< "*1: ["<<vec2idx[vec]<<"] "<<po<<" "<<sort_wlist[f->to_swlist]->name<<"\n";
+            break;
+          }
+        }
+        if(po_flag){
+          f->eliminate_flag[vec2idx[vec]] = 1;
+          //cout<< "*1_fail: ["<<vec2idx[vec]<<"] "<<sort_wlist[f->to_swlist]->name<<" flag=1\n";
+        }else{
+          parity_flag = 0;
+          for(auto po: sort_wlist[f->to_swlist]->po_list){
+            if(tr_unexamined1[vec].find(po)
+                != tr_unexamined1[vec].end()){
+              temp_str.append(to_string(vec2idx[vec]));
+              temp_str.append(" ");
+              temp_str.append(po);
+              //cout<<"     *** "<<temp_str<<endl;
+              if(!sort_wlist[f->to_swlist]->map_po_reconverge[po]){
+                invcnt = ((sort_wlist[f->to_swlist]->map_invcnt[po])%2 == 1);
+                out_value = tr_failty[temp_str];
+                temp_str.clear();
+              if(f->fault_type ^ invcnt != out_value){
+                  parity_flag = 1;
+                  //cout<< "*2: ["<<vec2idx[vec]<<"] "<<po<<" // "<<sort_wlist[f->to_swlist]->name<<" // "<<f->fault_type<<" ^ "<<sort_wlist[f->to_swlist]->map_invcnt[po]<<" != "<<out_value<<" ";
+                  break;
+                }
+              }
+            }
+          }
+          if(parity_flag){
+            f->eliminate_flag[vec2idx[vec]] = 2;
+            //cout<<" flag=2\n";
+          }
+        }
+      }
+      //cout<<"* -1: ["<<vec2idx[vec]<<"] "<<vec<<endl;
+
+      if ( f->fault_type == sort_wlist[f->to_swlist]->value){
+        f->eliminate_flag[vec2idx[vec]] = 3;
+        f->tpsp++;
+      }else{ // Step 3. Excitation Condition Check: Check the sa-v != n
         /* if f is a primary output or is directly connected to an primary output
          * the fault is detected */
         if ((f->node->type == OUTPUT) ||
@@ -258,7 +318,6 @@ void ATPG::diag(){
           }
         } // if  gate input fault
       } // if fault is active
-      else f->tpsp++;
       /*
        * fault simulation of a packet
        */
@@ -613,6 +672,7 @@ void ATPG::set_examined_faults(const string &wire, const string &gate, const str
     f = move(fptr_s(new (nothrow) FAULT));
     if (f == nullptr)
       error("No more room!");
+    f->eliminate_flag.resize(vectors.size());
     f->node = n;
     //cout << "dsad " << n->name << endl;
     f->io = io == "GO"; // gate output SA0 fault

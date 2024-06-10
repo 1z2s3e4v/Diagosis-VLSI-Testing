@@ -202,6 +202,7 @@ ATPG::TEST_RESULT::TEST_RESULT() {
     this->index = 0;
     this->observed = 0;
     this->expected = 0;
+    this->vec_index = 0;
     this->vec = "";
     this->detect = FALSE;
 }

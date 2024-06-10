@@ -152,6 +152,9 @@ class ATPG {
   forward_list<fptr> examined_faults;
   /* test result */
   forward_list<trptr_s> tr;          /* test result list */
+  vector<string> PO_name;             /* all the PO name (not used temporary) */
+  unordered_map<string, int> vec2idx;     /* vector to its index vector[ ] */
+  unordered_map<string, bool>  tr_failty;  /* {vec_index, " ", PO_name} to failty output value */
   forward_list<trptr>   tr_unexamined;          /* unexamined test result list */
   int test_fails;
   unordered_map<string,unordered_set<string>>   tr_unexamined1; 
@@ -279,6 +282,7 @@ class ATPG {
     int wlist_index;           /* index into the sorted_wlist array */
 
     unordered_map<string, wptr> map_po;  /* po_wire_name --> PO_wire*/
+    vector <string> po_list;      /* its all po_wire_name list */
     unordered_map<string, int> map_invcnt;  /* po_wire_name --> #inv_count from this node to PO*/
     unordered_map<string, bool> map_po_reconverge;  /* po_wire_name --> #n fanout branches reconverge from this node to PO*/
     //  the following functions control/observe the state of wire
@@ -379,6 +383,10 @@ class ATPG {
     int tpsp;
     double score;
     unordered_set<string> eqv_faults; // save as string (ex: "11GAT g3 GI SA0" or "7GAT dummy_gate5 GO SA0")
+    vector<short> eliminate_flag;      /* its size = vectors.size() */
+                                  /* eliminate_flag[vec2idx[vec]] represents fault eliminate_flag status in a certain vec */
+                                  /* default_value = 0 */
+                                  /* vec not faulty -> -1  // eliminated at step (1, 2, 3) -> (1, 2, 3) */
   }; // class FAULT
 
 
@@ -386,6 +394,7 @@ class ATPG {
    public:
     TEST_RESULT();
 
+    int vec_index;
     nptr node;                 /* gate under test(NIL if PI/PO fault) */
     short io;                  /* 0 = GI; 1 = GO */
     int index;           
