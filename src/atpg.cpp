@@ -70,8 +70,8 @@ void ATPG::test() {
 
             if(max > f->score) {max= f->score; group++;}
             if(perfect && f->score != 100) break;
-            printf("No.%d %s %s %s SA%d, groupID=%d, TFSF=%d, TPSF=%d, TFSP=%d, TPSP=%d, score=%.2f [ equivalent faults: ", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
-                                             (f->io?"GO":"GI"), f->fault_type, group, f->tfsf, f->tpsf, f->tfsp, f->tpsp, f->score, f->eqv_fault_num);
+            printf("No.%d %s %s %s SA%d, groupID=%d, TFSF=%d, TPSF=%d, TFSP=%d, score=%.2f [ equivalent faults: ", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
+                                             (f->io?"GO":"GI"), f->fault_type, group, f->tfsf, f->tpsf, f->score, f->eqv_fault_num);
             // [ equivalent faults: 7GAT dummy_gate5 GO SA0, 11GAT g3 GI SA0, ]     
             // for(fptr eqv_f : f->eqv_faults){
             //     printf("%s %s %s SA%d, ", sort_wlist[eqv_f->to_swlist]->name.c_str(), eqv_f->node->name.c_str(), (eqv_f->io?"GO":"GI"), eqv_f->fault_type);
@@ -196,6 +196,7 @@ ATPG::FAULT::FAULT() {
     this->tpsp = 0;
     this->score = 0;
     this->selected = false;
+    this->remove = false;
 }
 
 ATPG::TEST_RESULT::TEST_RESULT() {

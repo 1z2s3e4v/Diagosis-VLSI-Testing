@@ -51,14 +51,32 @@ void ATPG::generate_fault_list() {
       case BUF:
         for (wptr wptr_ele: w->inode.front()->iwire) {
           f->eqv_fault_num += num_of_eqv_sa0[wptr_ele];   // count how many equivalent faults in gate input
-          f->eqv_faults.insert(eqv_sa0s[wptr_ele].begin(), eqv_sa0s[wptr_ele].end());
+          // f->eqv_faults.insert(eqv_sa0s[wptr_ele].begin(), eqv_sa0s[wptr_ele].end());
+          for(string f_str : eqv_sa0s[wptr_ele]){
+            char buffer0[255]; sprintf(buffer0, "%s %s %s SA%d", wptr_ele->name.c_str(), wptr_ele->inode.front()->name.c_str(), "GO", STUCK0); string s0(buffer0);
+            if(wptr_ele->onode.size() > 1 && f_str == s0){
+              char new_buffer0[255]; sprintf(new_buffer0, "%s %s %s SA%d", wptr_ele->name.c_str(), f->node->name.c_str(), "GI", STUCK0); string new_s0(new_buffer0);
+              f->eqv_faults.insert(new_s0);
+            } else{
+              f->eqv_faults.insert(f_str);
+            }
+          }
         }
         break;
       case NOR:
       case NOT:
         for (wptr wptr_ele: w->inode.front()->iwire) {
           f->eqv_fault_num += num_of_eqv_sa1[wptr_ele];
-          f->eqv_faults.insert(eqv_sa1s[wptr_ele].begin(), eqv_sa1s[wptr_ele].end());
+          // f->eqv_faults.insert(eqv_sa1s[wptr_ele].begin(), eqv_sa1s[wptr_ele].end());
+          for(string f_str : eqv_sa1s[wptr_ele]){
+            char buffer1[255]; sprintf(buffer1, "%s %s %s SA%d", wptr_ele->name.c_str(), wptr_ele->inode.front()->name.c_str(), "GO", STUCK1); string s1(buffer1);
+            if(wptr_ele->onode.size() > 1 && f_str == s1){
+              char new_buffer1[255]; sprintf(new_buffer1, "%s %s %s SA%d", wptr_ele->name.c_str(), f->node->name.c_str(), "GI", STUCK1); string new_s1(new_buffer1);
+              f->eqv_faults.insert(new_s1);
+            } else{
+              f->eqv_faults.insert(f_str);
+            }
+          }
         }
         break;
       case INPUT:
@@ -102,7 +120,16 @@ void ATPG::generate_fault_list() {
           if (num_of_eqv_sa1.find(wptr_ele) == num_of_eqv_sa1.end())
             cerr << wptr_ele << " is not in hashmap." << endl;
           f->eqv_fault_num += num_of_eqv_sa1[wptr_ele];
-          f->eqv_faults.insert(eqv_sa1s[wptr_ele].begin(), eqv_sa1s[wptr_ele].end());
+           // f->eqv_faults.insert(eqv_sa1s[wptr_ele].begin(), eqv_sa1s[wptr_ele].end());
+          for(string f_str : eqv_sa1s[wptr_ele]){
+            char buffer1[255]; sprintf(buffer1, "%s %s %s SA%d", wptr_ele->name.c_str(), wptr_ele->inode.front()->name.c_str(), "GO", STUCK1); string s1(buffer1);
+            if(wptr_ele->onode.size() > 1 && f_str == s1){
+              char new_buffer1[255]; sprintf(new_buffer1, "%s %s %s SA%d", wptr_ele->name.c_str(), f->node->name.c_str(), "GI", STUCK1); string new_s1(new_buffer1);
+              f->eqv_faults.insert(new_s1);
+            } else{
+              f->eqv_faults.insert(f_str);
+            }
+          }
         }
         break;
       case NAND:
@@ -111,7 +138,16 @@ void ATPG::generate_fault_list() {
           if (num_of_eqv_sa0.find(wptr_ele) == num_of_eqv_sa0.end())
             cerr << wptr_ele << " is not in hashmap." << endl;
           f->eqv_fault_num += num_of_eqv_sa0[wptr_ele];
-          f->eqv_faults.insert(eqv_sa0s[wptr_ele].begin(), eqv_sa0s[wptr_ele].end());
+          // f->eqv_faults.insert(eqv_sa0s[wptr_ele].begin(), eqv_sa0s[wptr_ele].end());
+          for(string f_str : eqv_sa0s[wptr_ele]){
+            char buffer0[255]; sprintf(buffer0, "%s %s %s SA%d", wptr_ele->name.c_str(), wptr_ele->inode.front()->name.c_str(), "GO", STUCK0); string s0(buffer0);
+            if(wptr_ele->onode.size() > 1 && f_str == s0){
+              char new_buffer0[255]; sprintf(new_buffer0, "%s %s %s SA%d", wptr_ele->name.c_str(), f->node->name.c_str(), "GI", STUCK0); string new_s0(new_buffer0);
+              f->eqv_faults.insert(new_s0);
+            } else{
+              f->eqv_faults.insert(f_str);
+            }
+          }
         }
         break;
       case INPUT:
@@ -134,9 +170,9 @@ void ATPG::generate_fault_list() {
     /*if w has multiple fanout branches */
     if (w->onode.size() > 1) {
       num_of_eqv_sa0[w] = num_of_eqv_sa1[w] = 1;
-      char buffer0[255]; sprintf(buffer0, "%s %s %s SA%d", w->name.c_str(), w->onode.back()->name.c_str(), "GI", STUCK0); string s0(buffer0); 
+      char buffer0[255]; sprintf(buffer0, "%s %s %s SA%d", w->name.c_str(), w->inode.front()->name.c_str(), "GO", STUCK0); string s0(buffer0); 
       eqv_sa0s[w].insert(s0);
-      char buffer1[255]; sprintf(buffer1, "%s %s %s SA%d", w->name.c_str(), w->onode.back()->name.c_str(), "GI", STUCK1); string s1(buffer1); 
+      char buffer1[255]; sprintf(buffer1, "%s %s %s SA%d", w->name.c_str(), w->inode.front()->name.c_str(), "GO", STUCK1); string s1(buffer1); 
       eqv_sa1s[w].insert(s1);
       for (nptr nptr_ele: w->onode) {
         /* create SA0 for OR NOR EQV XOR gate inputs  */

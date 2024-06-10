@@ -158,7 +158,7 @@ class ATPG {
   void single_SAF_simulation34(const string &, int&);
   void multiple_SAF_simulation(const string &);
   void multiple_SAF_simulation1(const string &);
-  
+  void diag1();
   // forward_list<tsptr> tslist;          /* undetected fault list */
   vector<fptr> ranks;
   /* circuit */
@@ -248,7 +248,7 @@ class ATPG {
   unsigned int PINV(const unsigned int &);
   unsigned int PEXOR(const unsigned int &, const unsigned int &);
   unsigned int PEQUIV(const unsigned int &, const unsigned int &);
-
+  bool multiple_SAF_simulation2(const string &,  fptr);
   /* declared in podem.cpp */
   int no_of_backtracks{};  // current number of backtracks
   bool find_test{};        // true when a test pattern is found
@@ -396,6 +396,7 @@ class ATPG {
     int tpsp;
     double score;
     bool selected;
+    bool remove;
     unordered_set<string> eqv_faults; // save as string (ex: "11GAT g3 GI SA0" or "7GAT dummy_gate5 GO SA0")
   }; // class FAULT
 
