@@ -2,21 +2,34 @@ import pandas as pd
 import os, sys
 import re
 import subprocess
+import csv
 
 # Define config
 atpg_bin = './src/atpg'
+#atpg_bin = './bin_reference/atpg_reference'
 patterns_dir = './patterns'
 circuits_dir = './sample_circuits'
 failLog_dir = './failLog'
 diag_rpt_dir = './diag_rpt'
 Info_filename = failLog_dir+'/Info_failLog.csv'
 circuit_names = ['c17', 'c432', 'c499', 'c880', 'c1355', 'c2670', 'c3540', 'c6288', 'c7552']
+# circuit_names = ['c17', 'c432', 'c499', 'c880', 'c1355', 'c2670', 'c3540', 'c7552']
 fault_names = ['Fault 1', 'Fault 2', 'Fault 3', 'Fault 4', 'Fault 5']
 os.system(f"mkdir -p {diag_rpt_dir}")
 
 # Read info_failLog.csv
 df = pd.read_csv(Info_filename)
 # print(df)
+
+def run_genFailLog(circuit_name, failLog_idx, golden_faults):
+    # run atpg (ex: ./src/atpg -genFailLog ./patterns/golden_c499.ptn ./sample_circuits/c499.ckt -fault ID7"("7")" g389 GI SA1 -fault ID16"("16")" g52 GI SA1)
+    failLog_filename = f'{diag_rpt_dir}/{circuit_name}-{failLog_idx}.failLog'
+    cmd = f"{atpg_bin} -genFailLog {patterns_dir}/golden_{circuit_name}.ptn {circuits_dir}/{circuit_name}.ckt > {failLog_filename}"
+    for gf in golden_faults:
+        gf_info = gf.replace('(','\"(\"').replace(')','\")\"')
+        cmd += f" -fault {gf_info}"
+    # print(f"Run cmd: {cmd}")
+    subprocess.run(cmd, shell=True, stderr=subprocess.PIPE, text=True)
 
 def run_diag(circuit_name, failLog_idx):
     # run atpg (ex: ./src/atpg -diag ./patterns/golden_c17.ptn ./sample_circuits/c17.ckt ./failLog/c17-020.failLog)
@@ -41,18 +54,35 @@ def find_fault(golden_f, diag_fs):
             return i
     return -1
 
+def check_failLog(circuit_name, failLog_idx):
+    # get failLogs
+    golden_failLog_filename = f'{failLog_dir}/{circuit_name}-{failLog_idx:03}.failLog'
+    diag_failLog_filename = f'{diag_rpt_dir}/{circuit_name}-{failLog_idx}.failLog'
+    golden_failLogs = []
+    diag_failLogs = []
+    with open(golden_failLog_filename, 'r') as file:
+        golden_failLogs = [line.strip() for line in file if line.startswith("vector")]
+    with open(diag_failLog_filename, 'r') as file:
+        diag_failLogs = [line.strip() for line in file if line.startswith("vector")]
+    # check if golden_failLog same with diag_failLog
+    missing_vectors = [fail for fail in golden_failLogs if fail not in diag_failLogs]
+    perfect_matched = True
+    if len(golden_failLogs) != len(diag_failLogs): perfect_matched = False
+    for fail_idx, miss in enumerate(missing_vectors):
+        if miss: perfect_matched = False; print(f"  Missed failLog: {golden_failLogs[fail_idx]}");
+    return perfect_matched
 
 def check_diag_rpt(circuit_name, failLog_idx):
     # get diag faults
     rpt_filename = f'{diag_rpt_dir}/{circuit_name}-{failLog_idx}.log'
     with open(rpt_filename, 'r') as file: diag_rpt = file.read()
-    extract_pattern = re.compile(r'No\.(\d+)\s+([\w\d()_*]+\s+\w+\s+\w+\s+\w+),\s+groupID=(\d+),\s+TFSF=(\d+),\s+TPSF=(\d+),\s+TFSP=(\d+),\s+TPSP=(\d+),\s+score=([\d.]+)\s+\[ equivalent faults: (.*?)\]')
+    extract_pattern = re.compile(r'No\.(\d+)\s+([\w\d()_*]+\s+\w+\s+\w+\s+\w+),\s+(.*)\s+\[ equivalent faults: (.*?)\]')
     matches = extract_pattern.findall(diag_rpt)
     diag_faults = []
     for match in matches:
         diag_f = {}
         # diag_f['rank'] = match[0]
-        diag_f['fault_name'] = match[1]; diag_f['group_id'] = match[2]; diag_f['tfsf'] = match[3]; diag_f['tpsf'] = match[4]; diag_f['tfsp'] = match[5]; diag_f['tpsp'] = match[6]; diag_f['score'] = match[7]; diag_f['equivalent_faults'] = [fault.strip() for fault in match[8].strip().split(',') if fault.strip()]
+        diag_f['fault_name'] = match[1]; diag_f['equivalent_faults'] = [fault.strip() for fault in match[3].strip().split(',') if fault.strip()]
         diag_faults.append(diag_f)
     # get the row in df
     condition = (df['Circuit'] == circuit_name) & (df['Fail Log Index'] == failLog_idx)
@@ -68,42 +98,63 @@ def check_diag_rpt(circuit_name, failLog_idx):
     diag_accuracy = 0.0
     diag_resolution = 30.0 
     golden_fault_rank_in_diag = []
-    for gf in golden_faults:
-        diag_rank = find_fault(gf, diag_faults)+1
-        if diag_rank <= 5 and diag_rank > 0:
-            num_correctly_diag_faults += 1
-        golden_fault_rank_in_diag.append(diag_rank)
-    diag_accuracy = float(num_correctly_diag_faults) / num_total_injected_faults
-    if num_correctly_diag_faults > 0:
-        diag_resolution = float(num_diag_faults) / num_correctly_diag_faults
+    # 1. Check the failLog first
+    perfect_matched = False
+    # run_genFailLog(circuit_name, failLog_idx, golden_faults)
+    # perfect_matched = check_failLog(circuit_name, failLog_idx)
+    if perfect_matched:
+        diag_accuracy = 1.0
+        diag_resolution = 1.0
+        num_correctly_diag_faults = len(diag_faults)
+        num_diag_faults = len(diag_faults)
+    # 2. Check the diag faults if the failLog is not same
+    else: 
+        for gf in golden_faults:
+            diag_rank = find_fault(gf, diag_faults)+1
+            if diag_rank <= 5 and diag_rank > 0:
+                num_correctly_diag_faults += 1
+            golden_fault_rank_in_diag.append(diag_rank)
+        diag_accuracy = float(num_correctly_diag_faults) / num_total_injected_faults
+        if num_correctly_diag_faults > 0:
+            diag_resolution = float(num_diag_faults) / num_correctly_diag_faults
     return diag_accuracy, diag_resolution, [num_correctly_diag_faults, num_total_injected_faults, num_diag_faults, golden_fault_rank_in_diag]
 
 # Check mode (run_one or run_all)
 if (len(sys.argv) == 2 and sys.argv[1] == "all"): # Run all
-    # Check for each row
-    for c_name in circuit_names:
-        diag_accs = []
-        diag_resols = []
-        diag_runtimes = []
+    csv_columns = ["Circuit Name", "Fail Log Index", "Accuracy", "Accuracy Info", "Resolution", "Resolution Info", "Runtime", "Injected Fault Ranks"]
+    with open('results.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(csv_columns)
         # Check for each row
-        for index, row in df.iterrows():
-            # get info
-            circuit_name = row["Circuit"]
-            failLog_idx = row["Fail Log Index"]
-            # Check for round
-            if circuit_name != c_name: continue
-            # run atpg 
-            runtime = run_diag(circuit_name, failLog_idx)
-            # check diagnosis accuracy
-            diag_accuracy, diag_resolution, other_info = check_diag_rpt(circuit_name, failLog_idx)
-            diag_accs.append(diag_accuracy); diag_resols.append(diag_resolution); diag_runtimes.append(runtime); 
-            print(f"{circuit_name}-{failLog_idx:03}: Acc={diag_accuracy:.2f} ({other_info[0]}/{other_info[1]}), Resol={diag_resolution:.2f} ({other_info[2]}/{other_info[0]}), Runtime={runtime:.2f}s", end='')
-            print(", diag_ranks of injected faults: ", end='')
-            for rank in other_info[3]: print(f" {rank},", end='')
+        for c_name in circuit_names:
+            diag_accs = []
+            diag_resols = []
+            diag_runtimes = []
+            # Check for each row
+            for index, row in df.iterrows():
+                # get info
+                circuit_name = row["Circuit"]
+                failLog_idx = row["Fail Log Index"]
+                # Check for round
+                if circuit_name != c_name: continue
+                # run atpg 
+                runtime = run_diag(circuit_name, failLog_idx)
+                # check diagnosis accuracy
+                diag_accuracy, diag_resolution, other_info = check_diag_rpt(circuit_name, failLog_idx)
+                diag_accs.append(diag_accuracy); diag_resols.append(diag_resolution); diag_runtimes.append(runtime); 
+                print(f"{circuit_name}-{failLog_idx:03}: Acc={diag_accuracy:.2f} ({other_info[0]}/{other_info[1]}), Resol={diag_resolution:.2f} ({other_info[2]}/{other_info[0]}), Runtime={runtime:.2f}s", end='')
+                print(", diag_ranks of injected faults: ", end='')
+                for rank in other_info[3]: print(f" {rank},", end='')
+                print("")
+                # output csv
+                accuracy_info = f"'{other_info[0]}/{other_info[1]}"
+                resolution_info = f"'{other_info[2]}/{other_info[0]}"
+                injected_fault_ranks = ", ".join(map(str, other_info[3]))
+                row_data = [circuit_name, f"{failLog_idx}", f"{diag_accuracy}", accuracy_info, f"{diag_resolution}", resolution_info, f"{runtime}", injected_fault_ranks]
+                writer.writerow(row_data)
+            print("------------------------------------------------------------------")
+            print(f"{c_name} summary: Avg Acc={sum(diag_accs)/len(diag_accs):.2f}, Avg Resol={sum(diag_resols)/len(diag_resols):.2f}, Avg Runtime={sum(diag_runtimes)/len(diag_runtimes):.2f}s")
             print("")
-        print("------------------------------------------------------------------")
-        print(f"{c_name} summary: Avg Acc={sum(diag_accs)/len(diag_accs):.2f}, Avg Resol={sum(diag_resols)/len(diag_resols):.2f}, Avg Runtime={sum(diag_runtimes)/len(diag_runtimes):.2f}s")
-        print("")
 
 elif len(sys.argv) == 3: # Run one case
     # run atpg 
@@ -119,21 +170,31 @@ elif len(sys.argv) == 2 and sys.argv[1] in circuit_names: # Run all failLogs for
     diag_accs = []
     diag_resols = []
     diag_runtimes = []
-    # Check for each row
-    for index, row in df.iterrows():
-        # get info
-        circuit_name = row["Circuit"]
-        if circuit_name != sys.argv[1]: continue
-        failLog_idx = row["Fail Log Index"]
-        # run atpg 
-        runtime = run_diag(circuit_name, failLog_idx)
-        # check diagnosis accuracy
-        diag_accuracy, diag_resolution, other_info = check_diag_rpt(circuit_name, failLog_idx)
-        diag_accs.append(diag_accuracy); diag_resols.append(diag_resolution); diag_runtimes.append(runtime); 
-        print(f"{circuit_name}-{failLog_idx:03}: Acc={diag_accuracy:.2f} ({other_info[0]}/{other_info[1]}), Resol={diag_resolution:.2f} ({other_info[2]}/{other_info[0]}), Runtime={runtime:.2f}s", end='')
-        print(", diag_ranks of injected faults: ", end='')
-        for rank in other_info[3]: print(f" {rank},", end='')
-        print("")
+    csv_columns = ["Circuit Name", "Fail Log Index", "Accuracy", "Accuracy Info", "Resolution", "Resolution Info", "Runtime", "Injected Fault Ranks"]
+    with open(f'results-{sys.argv[1]}.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(csv_columns)
+        # Check for each row
+        for index, row in df.iterrows():
+            # get info
+            circuit_name = row["Circuit"]
+            if circuit_name != sys.argv[1]: continue
+            failLog_idx = row["Fail Log Index"]
+            # run atpg 
+            runtime = run_diag(circuit_name, failLog_idx)
+            # check diagnosis accuracy
+            diag_accuracy, diag_resolution, other_info = check_diag_rpt(circuit_name, failLog_idx)
+            diag_accs.append(diag_accuracy); diag_resols.append(diag_resolution); diag_runtimes.append(runtime); 
+            print(f"{circuit_name}-{failLog_idx:03}: Acc={diag_accuracy:.2f} ({other_info[0]}/{other_info[1]}), Resol={diag_resolution:.2f} ({other_info[2]}/{other_info[0]}), Runtime={runtime:.2f}s", end='')
+            print(", diag_ranks of injected faults: ", end='')
+            for rank in other_info[3]: print(f" {rank},", end='')
+            print("")
+            # output csv
+            accuracy_info = f"'{other_info[0]}/{other_info[1]}"
+            resolution_info = f"'{other_info[2]}/{other_info[0]}"
+            injected_fault_ranks = ", ".join(map(str, other_info[3]))
+            row_data = [circuit_name, f"{failLog_idx}", f"{diag_accuracy}", accuracy_info, f"{diag_resolution}", resolution_info, f"{runtime}", injected_fault_ranks]
+            writer.writerow(row_data)
     print("------------------------------------------------------------------")
     print(f"Summary: Avg Acc={sum(diag_accs)/len(diag_accs):.2f}, Avg Resol={sum(diag_resols)/len(diag_resols):.2f}, Avg Runtime={sum(diag_runtimes)/len(diag_runtimes):.2f}s")
     print("")
