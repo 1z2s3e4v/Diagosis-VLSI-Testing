@@ -110,7 +110,9 @@ class ATPG {
   void genFailLog_fault_sim_a_vector(const string &, int &, int &);
   void set_examined_faults(const string &,const string &,const string &,const string &);
   void diag();
+  void SSAF_diag();
   void ranking();
+  
   void print_circuit_summary();
   void construct_po_map();
   
@@ -143,6 +145,7 @@ class ATPG {
   forward_list<fptr> flist_undetect;   /* undetected fault list */
   // forward_list<tsptr> tslist;          /* undetected fault list */
   vector<fptr> ranks;
+  vector<fptr> output_diagnosis_result;
   /* circuit */
   vector<wptr> sort_wlist;             /* sorted wire list with regard to level */
   vector<wptr> cktin;                  /* input wire list */
@@ -158,6 +161,7 @@ class ATPG {
   forward_list<trptr>   tr_unexamined;          /* unexamined test result list */
   int test_fails;
   unordered_map<string,unordered_set<string>>   tr_unexamined1; 
+  unordered_map<string, vector<fptr>>   SF1; 
   vector<wptr> failOuts;
   /* for parsing circuits */
   array<forward_list<wptr_s>, HASHSIZE> hash_wlist;   /* hashed wire list */
@@ -197,6 +201,10 @@ class ATPG {
   void error(const string &);
   void display_circuit();
 
+  /* Diag */
+  bool Pruning(vector<fptr> &, int i);
+  bool multiple_SAF_simulation(vector<fptr> &);
+  bool multiple_SAF_simulation2(const string &, fptr );
   /*  in init_flist.cpp */
   int num_of_gate_fault;    // total number of gate-level uncollapsed faults in the whole circuit
 
@@ -280,7 +288,8 @@ class ATPG {
     int wire_value_f;           /* (32 bits) represents values of this wire 
                                   in the presence of 16 faults. (for pfedfs) */
     int wlist_index;           /* index into the sorted_wlist array */
-
+    int wire_value_f1;
+    bool fixed;
     unordered_map<string, wptr> map_po;  /* po_wire_name --> PO_wire*/
     vector <string> po_list;      /* its all po_wire_name list */
     unordered_map<string, int> map_invcnt;  /* po_wire_name --> #inv_count from this node to PO*/
@@ -381,6 +390,7 @@ class ATPG {
     int tpsf;
     int tfsp;
     int tpsp;
+    bool remove;
     double score;
     unordered_set<string> eqv_faults; // save as string (ex: "11GAT g3 GI SA0" or "7GAT dummy_gate5 GO SA0")
     vector<short> eliminate_flag;      /* its size = vectors.size() */
