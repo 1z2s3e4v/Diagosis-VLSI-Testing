@@ -108,6 +108,7 @@ class ATPG {
   void genFailLog_generate_fault_list();
   void genFailLog_fault_simulation(int &);
   void genFailLog_fault_sim_a_vector(const string &, int &, int &);
+  void drop_fault_causing_failure(const string &);
   void set_examined_faults(const string &,const string &,const string &,const string &);
   void diag();
   void SSAF_diag();
@@ -160,7 +161,7 @@ class ATPG {
   unordered_map<string, bool>  tr_failty;  /* {vec_index, " ", PO_name} to failty output value */
   forward_list<trptr>   tr_unexamined;          /* unexamined test result list */
   int test_fails;
-  unordered_map<string,unordered_set<string>>   tr_unexamined1; 
+  unordered_map<string,unordered_set<string>>   observed_faults; 
   unordered_map<string, vector<fptr>>   SF1; 
   vector<wptr> failOuts;
   /* for parsing circuits */
