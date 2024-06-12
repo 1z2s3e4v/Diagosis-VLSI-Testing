@@ -483,7 +483,7 @@ void ATPG::read_faillog(const string &faillog) {
       i++;
     }
     f->vec = vec;
-    tr_unexamined1[vec].insert(f->node->owire.front()->name);
+    observed_faults[vec].insert(f->node->owire.front()->name);
     //tr_unexamined.push_front(f.get());
     string temp_str;
     temp_str.append(to_string(f->vec_index));
@@ -493,7 +493,7 @@ void ATPG::read_faillog(const string &faillog) {
     tr.push_front(move(f)); 
     test_fails++;
   }
-  // for ( auto t : tr_unexamined1)
+  // for ( auto t : observed_faults)
   // {
   //   cout << t.first << endl;
   //   for (auto kk : t.second)
