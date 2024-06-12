@@ -83,7 +83,7 @@ void ATPG::ranking(){
     for (i = 0; i < flist_size - 1; ++i) {
         swapped = false;
         for (j = 0; j < flist_size - i -1 ; ++j) {
-            if (ranks[j]->score < ranks[j + 1]->score) {
+            if (ranks[j]->e < ranks[j + 1]->e) {
                 swap(ranks[j], ranks[j + 1]);
                 swapped = true;
             }
@@ -92,6 +92,50 @@ void ATPG::ranking(){
     }
 }
 
+void ATPG::ranking1(){
+    int flist_size = ranks.size();
+    int i, j;
+    bool swapped;
+    for (i = 0; i < flist_size - 1; ++i) {
+        swapped = false;
+        for (j = 0; j < flist_size - i -1 ; ++j) {
+            if (ranks[j]->e == ranks[j + 1]->e) 
+            {
+              if (ranks[j]->tfsf < ranks[j + 1]->tfsf) 
+              {
+                swap(ranks[j], ranks[j + 1]);
+                swapped = true;
+              }
+            
+            }
+          
+        }
+        if (swapped == false) break;
+    }
+}
+
+void ATPG::ranking2(){
+    int flist_size = ranks.size();
+    int i, j;
+    bool swapped;
+    for (i = 0; i < flist_size - 1; ++i) {
+        swapped = false;
+        for (j = 0; j < flist_size - i -1 ; ++j) {
+          if (ranks[j]->e == ranks[j + 1]->e) 
+          {
+            if (ranks[j]->tfsf == ranks[j + 1]->tfsf) 
+            {
+              if (ranks[j]->tpsf > ranks[j + 1]->tpsf) 
+              {
+                swap(ranks[j], ranks[j + 1]);
+                swapped = true;
+              }
+            }
+          }
+      }
+      if (swapped == false) break;
+    }
+}
 /* fault simulate a set of test vectors */
 void ATPG::genFailLog_fault_simulation(int &total_detect_num) {
   int i;
@@ -107,12 +151,9 @@ void ATPG::genFailLog_fault_simulation(int &total_detect_num) {
 void ATPG::diag(){
   SSAF_diag();
   vector<fptr>curr_set;
-  cout << ranks.size() << endl;
-  for(auto vec : vectors){
-    if(observed_faults[vec].empty()) drop_fault_causing_failure(vec);
-  }
-  cout << ranks.size() << endl;
-  
+  double threshold = 0;
+  curr_set.clear();
+  //if(0){
   if(Pruning(curr_set,0)){
     for(auto f : curr_set)
     {
@@ -230,50 +271,9 @@ void ATPG::SSAF_diag()
       
       // if (...) // TODO: Step 1. Structural Backtracing: Check whether pos is in all failing fanin cone
       // if (...) // TODO: Step 2. Parity Check: Check whether vp=f
-      bool po_flag = 1, parity_flag = 0, invcnt, out_value;
-      string temp_str;
-      if(observed_faults[vec].empty()){
-        f->eliminate_flag[vec2idx[vec]] = -1;
-      }else{
-        po_flag = 1;
-        for(auto po: sort_wlist[f->to_swlist]->po_list){
-          if(observed_faults[vec].find(po)
-              != observed_faults[vec].end()){
-            po_flag = 0;
-            break;
-          }
-        }
-        if(po_flag){
-          f->eliminate_flag[vec2idx[vec]] = 1;
-        }else{
-          parity_flag = 0;
-          for(auto po: sort_wlist[f->to_swlist]->po_list){
-            if(observed_faults[vec].find(po)
-                != observed_faults[vec].end()){
-              temp_str.append(to_string(vec2idx[vec]));
-              temp_str.append(" ");
-              temp_str.append(po);
-              if(!sort_wlist[f->to_swlist]->map_po_reconverge[po]){
-                invcnt = ((sort_wlist[f->to_swlist]->map_invcnt[po])%2 == 1);
-                out_value = tr_failty[temp_str];
-                temp_str.clear();
-              if(f->fault_type ^ invcnt != out_value){
-                  parity_flag = 1;
-                  break;
-                }
-              }
-            }
-          }
-          if(parity_flag){
-            f->eliminate_flag[vec2idx[vec]] = 2;
-          }
-        }
-      }
-
-      if ( f->fault_type == sort_wlist[f->to_swlist]->value){
-        f->eliminate_flag[vec2idx[vec]] = 3;
-        f->tpsp++;
-      }else{ // Step 3. Excitation Condition Check: Check the sa-v != n
+      
+      if ( f->fault_type != sort_wlist[f->to_swlist]->value){
+         // Step 3. Excitation Condition Check: Check the sa-v != n
         /* if f is a primary output or is directly connected to an primary output
          * the fault is detected */
         if ((f->node->type == OUTPUT) ||
@@ -284,10 +284,11 @@ void ATPG::SSAF_diag()
             if((observed_faults[vec].find(sort_wlist[f->to_swlist]->name) != observed_faults[vec].end())) { 
               f->tfsf++;
               f->tfsp--;
+              sort_wlist[f->to_swlist]->e_faults.insert(f);
             }
-            else {f->tpsf++;}
+            else {f->tpsf++;sort_wlist[f->to_swlist]->c_faults.insert(f);}
             // no fault is supposed to occur
-          } else {f->tpsf++;}
+          } else {f->tpsf++;sort_wlist[f->to_swlist]->c_faults.insert(f);}
         
         } else {
           /* if f is an gate output fault */
@@ -330,10 +331,11 @@ void ATPG::SSAF_diag()
                   if((observed_faults[vec].find(faulty_wire->name) != observed_faults[vec].end())) { 
                     f->tfsf++;
                     f->tfsp--;
+                    faulty_wire->e_faults.insert(f);
                   }
-                  else {f->tpsf++;}
+                  else {f->tpsf++;faulty_wire->c_faults.insert(f);}
                   // no fault is supposed to occur
-                } else {f->tpsf++;}
+                } else {f->tpsf++;faulty_wire->c_faults.insert(f);}
               } else {
                 /* if faulty_wire is not already marked as faulty, mark it as faulty
                  * and add the wire to the list of faulty wires. */
@@ -407,16 +409,24 @@ void ATPG::SSAF_diag()
               // 2. If these two values are different and they are not unknown, then the fault is detected. Since we use two-bit logic to simulate circuit, you can use Mask[] to perform bit-wise operation to get value of a specific bit.
               // if((Mask[f_idx] & detected != 0) && (w->wire_value_g & Mask[f_idx] != Unknown[f_idx]) && (w->wire_value_f & Mask[f_idx] != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
               if(((Mask[f_idx] & detected) != 0) && ((w->wire_value_g & Mask[f_idx]) != Unknown[f_idx]) && ((w->wire_value_f & Mask[f_idx]) != Unknown[f_idx])){ // the bits are faults and are detected. And wire_value_g and wire_value_g are not unknown.
-                if(!observed_faults[vec].empty())
+                if(!observed_faults[vec].empty()) // Failing in observation
                 {
                   if((observed_faults[vec].find(w->name) != observed_faults[vec].end())) { 
                     simulated_fault_list[f_idx]->tfsf++;
                     simulated_fault_list[f_idx]->tfsp--;
+                    w->e_faults.insert(simulated_fault_list[f_idx]);
                   }
-                  else {simulated_fault_list[f_idx]->tpsf++;}
+                  else {
+                    simulated_fault_list[f_idx]->tpsf++;
+                    w->c_faults.insert(simulated_fault_list[f_idx]);
+                  }
                   // no fault is supposed to occur
-                } else {simulated_fault_list[f_idx]->tpsf++;}
+                } else {
+                    simulated_fault_list[f_idx]->tpsf++;
+                    w->c_faults.insert(simulated_fault_list[f_idx]);
+                }
               }
+              
             }
           }
           // 4. After that, don't forget to reset faulty values (wire_value_f) to their fault-free values (wire_value_g)
@@ -429,22 +439,36 @@ void ATPG::SSAF_diag()
     }
   
   }
-
+  
   for (auto pos = flist_undetect.cbegin(); pos != flist_undetect.cend(); ++pos) {
       auto f = *pos;
       f->score = ((double) f->tfsf*10)/((double) (f->tfsf*10 + f->tfsp*10 + f->tpsf))*100;
-      if(f->score > 15)ranks.push_back(f);
+      for(auto w : cktout)
+      {
+        if(!w->c_faults.empty() && w->c_faults.find(f)!= w->c_faults.end())
+        {
+          f->wc += ((double)1/(double)w->c_faults.size());
+        }
+        if(!w->e_faults.empty() && w->e_faults.find(f)!= w->e_faults.end())
+        {
+          f->we += ((double)1/(double)w->e_faults.size());
+        }
+      }
+      f->e = f->we - f->wc;
+      ranks.push_back(f);
       SF1[sort_wlist[f->to_swlist]->name].push_back(f);
   }
   ranking();
+  ranking1();
+  ranking2();
 }
 
 bool ATPG::Pruning(vector<fptr> &curr, int start)
 {
   //multiple_SAF_simulation();
   bool find = false;
-  if (start == 10) return false;
-  for(int i = start; i < ranks.size(); i++)
+  if (start == 5) return false;
+  for(int i = start; i < ranks.size() && i < 20; i++)
   {
     curr.push_back(ranks[i]);
     auto f = ranks[i];

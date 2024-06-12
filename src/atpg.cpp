@@ -61,7 +61,7 @@ void ATPG::test() {
         //display_undetect();
         print_circuit_summary();
 
-        construct_po_map(); // TODO: Construct the map of po--faninNodes
+        //construct_po_map(); // TODO: Construct the map of po--faninNodes
         
         diag(); // Score the faults for finding faults for the failLog
         //ranking(); // Rank the 
@@ -70,9 +70,9 @@ void ATPG::test() {
             if (f->score == 100) perfect = true;
 
             if(max > f->score) {max= f->score; group++;}
-            if(perfect && f->score != 100) break;
-            printf("No.%d %s %s %s SA%d, TFSF=%d, TPSF=%d, TFSP=%d, score=%.2f [ equivalent faults: ", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
-                                             (f->io?"GO":"GI"), f->fault_type, f->tfsf, f->tpsf, f->score, f->eqv_fault_num);
+            //if(perfect && f->score != 100) break;
+            printf("No.%d %s %s %s SA%d, TFSF=%d, TFSP=%d, TPSF=%d, we=%.5f, wc=%.5f, e=%.5f [ equivalent faults: ", count++, sort_wlist[f->to_swlist]->name.c_str(), f->node->name.c_str(), \
+                                             (f->io?"GO":"GI"), f->fault_type, f->tfsf, f->tfsp,f->tpsf, f->we, f->wc , f->e);
             // [ equivalent faults: 7GAT dummy_gate5 GO SA0, 11GAT g3 GI SA0, ]     
             // for(fptr eqv_f : f->eqv_faults){
             //     printf("%s %s %s SA%d, ", sort_wlist[eqv_f->to_swlist]->name.c_str(), eqv_f->node->name.c_str(), (eqv_f->io?"GO":"GI"), eqv_f->fault_type);
@@ -196,6 +196,9 @@ ATPG::FAULT::FAULT() {
     this->tfsp = 0;
     this->tpsp = 0;
     this->score = 0;
+    this->we = 0;
+    this->wc = 0;
+    this->e = 0;
     this->remove = false;
 }
 

@@ -113,7 +113,9 @@ class ATPG {
   void diag();
   void SSAF_diag();
   void ranking();
-  
+  void ranking1();
+  void ranking2();
+
   void print_circuit_summary();
   void construct_po_map();
   
@@ -163,6 +165,7 @@ class ATPG {
   int test_fails;
   unordered_map<string,unordered_set<string>>   observed_faults; 
   unordered_map<string, vector<fptr>>   SF1; 
+  
   vector<wptr> failOuts;
   /* for parsing circuits */
   array<forward_list<wptr_s>, HASHSIZE> hash_wlist;   /* hashed wire list */
@@ -295,6 +298,8 @@ class ATPG {
     vector <string> po_list;      /* its all po_wire_name list */
     unordered_map<string, int> map_invcnt;  /* po_wire_name --> #inv_count from this node to PO*/
     unordered_map<string, bool> map_po_reconverge;  /* po_wire_name --> #n fanout branches reconverge from this node to PO*/
+    unordered_set<fptr> e_faults;
+    unordered_set<fptr> c_faults;
     //  the following functions control/observe the state of wire
     //  HCY 2020/2/6
     void set_(int type) { flag |= type; }
@@ -391,6 +396,9 @@ class ATPG {
     int tpsf;
     int tfsp;
     int tpsp;
+    double we;
+    double wc;
+    double e;
     bool remove;
     double score;
     unordered_set<string> eqv_faults; // save as string (ex: "11GAT g3 GI SA0" or "7GAT dummy_gate5 GO SA0")
