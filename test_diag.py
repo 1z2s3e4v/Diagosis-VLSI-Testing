@@ -21,14 +21,15 @@ os.system(f"mkdir -p {diag_rpt_dir}")
 df = pd.read_csv(Info_filename)
 # print(df)
 
-def run_genFailLog(circuit_name, failLog_idx, golden_faults):
+def run_genFailLog(circuit_name, failLog_idx, diag_faults):
     # run atpg (ex: ./src/atpg -genFailLog ./patterns/golden_c499.ptn ./sample_circuits/c499.ckt -fault ID7"("7")" g389 GI SA1 -fault ID16"("16")" g52 GI SA1)
     failLog_filename = f'{diag_rpt_dir}/{circuit_name}-{failLog_idx}.failLog'
     cmd = f"{atpg_bin} -genFailLog {patterns_dir}/golden_{circuit_name}.ptn {circuits_dir}/{circuit_name}.ckt"
-    for gf in golden_faults:
-        gf_info = gf.replace('(','\"(\"').replace(')','\")\"')
-        cmd += f" -fault {gf_info}"
+    for diag_f in diag_faults:
+        diag_f_info = diag_f.replace('(','\"(\"').replace(')','\")\"')
+        cmd += f" -fault {diag_f_info}"
     cmd += f" > {failLog_filename}"
+
     # print(f"Run cmd: {cmd}")
     subprocess.run(cmd, shell=True, stderr=subprocess.PIPE, text=True)
 
@@ -70,7 +71,7 @@ def check_failLog(circuit_name, failLog_idx):
     perfect_matched = True
     if len(golden_failLogs) != len(diag_failLogs): perfect_matched = False
     for fail_idx, miss in enumerate(missing_vectors):
-        if miss: perfect_matched = False; print(f"  Missed failLog: {golden_failLogs[fail_idx]}");
+        if miss: perfect_matched = False#; print(f"  Missed failLog: {golden_failLogs[fail_idx]}");
     return perfect_matched
 
 def check_diag_rpt(circuit_name, failLog_idx):
@@ -91,7 +92,9 @@ def check_diag_rpt(circuit_name, failLog_idx):
     # get golden faults
     golden_faults = []
     for f in fault_names:
-        if row[f] != "None": golden_faults.append(row[f].replace('/', ' '))
+        f_name = str(row[f])
+        if f_name != "None" and f_name != "NaN" and f_name != "none" and f_name != "nan" and f_name != "Nan": 
+            golden_faults.append(str(row[f]).replace('/', ' '))
     # calculate accuracy and resolution
     num_correctly_diag_faults = 0
     num_total_injected_faults = len(golden_faults)
