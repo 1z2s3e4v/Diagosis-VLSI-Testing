@@ -211,7 +211,7 @@ elif len(sys.argv) == 2 and sys.argv[1] in circuit_names: # Run all failLogs for
         resolution_info = f"'{other_info['num_diag_faults']}/{other_info['num_correctly_diag_faults']}"
         injected_fault_ranks = ", ".join(map(str, other_info["golden_fault_rank_in_diag"]))
         row_data = [circuit_name, f"{failLog_idx}", f"{diag_accuracy}", accuracy_info, f"{diag_resolution}", resolution_info, f"{runtime}", injected_fault_ranks]
-        with open('results.csv', mode='a', newline='') as file:
+        with open(f'results-{sys.argv[1]}.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(row_data)
     print("------------------------------------------------------------------")
